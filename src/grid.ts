@@ -113,13 +113,13 @@ const buildWalls = () => {
 	setSymmetricWall(20, 5, 'horizontal', 'x', 'L19');
 	setSymmetricWall(20, 5, 'vertical', 'x', 'L19');
 	// L20
-	setSymmetricWall(1, 6, 'horizontal', 'x', 'L20');
-	setSymmetricWall(2, 6, 'horizontal', 'x', 'L20');
+	setSymmetricWall(1, 6, 'vertical', 'x', 'L20');
+	setSymmetricWall(2, 6, 'vertical', 'x', 'L20');
 	setSymmetricWall(3, 5, 'vertical', 'x', 'L20');
 	setSymmetricWall(3, 4, 'vertical', 'x', 'L20');
 	// L21
-	setSymmetricWall(5, 6, 'horizontal', 'x', 'L21');
-	setSymmetricWall(6, 6, 'horizontal', 'x', 'L21');
+	setSymmetricWall(5, 6, 'vertical', 'x', 'L21');
+	setSymmetricWall(6, 6, 'vertical', 'x', 'L21');
 };
 
 export const Grid = {
