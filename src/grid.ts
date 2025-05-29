@@ -29,7 +29,7 @@ const setSymmetricWall = (x: number, y: number, direction: 'horizontal' | 'verti
 const buildWalls = () => {
 	// Left and right wings
 	// L1
-	setSymmetricWall(0, 2, 'horizontal', 'xy', 'L1');
+	setSymmetricWall(0, 3, 'horizontal', 'xy', 'L1');
 	setSymmetricWall(1, 2, 'horizontal', 'xy', 'L1');
 	// L2
 	setSymmetricWall(4, 0, 'vertical', 'x', 'L2');
