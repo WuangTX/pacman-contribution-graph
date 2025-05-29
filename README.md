@@ -48,7 +48,7 @@ Here's how to set up and run the Pac-Man Contribution Graph:
     import { generatePacManGame } from 'pacman-contribution-graph';
 
     generatePacManGame({
-    	username: 'your_username',
+    	username: 'WuangTX',
     	platform: 'github', // or 'gitlab'
     	theme: 'github-dark', // or 'gitlab-dark'
     	speed: 2,
