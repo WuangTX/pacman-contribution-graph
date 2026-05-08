@@ -126,26 +126,26 @@ Here's how to set up and run the games:
     renderer.start();
     ```
 
+    **Galaga:**
+
+    ```javascript
     import { GalagaRenderer } from 'pacman-contribution-graph';
 
     const renderer = new GalagaRenderer({
-    username: 'your_username',
-    platform: 'github', // or 'gitlab'
-    gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
-    svgCallback: (svg) => {
-    document.getElementById('output').innerHTML = svg;
-    },
-    gameOverCallback: () => {
-    console.log('Game over!');
-    },
-    pointsIncreasedCallback: (points) => {
-    console.log('Score:', points);
-    }
+    	username: 'your_username',
+    	platform: 'github', // or 'gitlab'
+    	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
+    	svgCallback: (svg) => {
+    		document.getElementById('output').innerHTML = svg;
+    	},
+    	gameOverCallback: () => {
+    		console.log('Game over!');
+    	},
+    	pointsIncreasedCallback: (points) => {
+    		console.log('Score:', points);
+    	}
     });
     renderer.start();
-
-    ```
-
     ```
 
 3. **Customize Settings**: Adjust the parameters as needed:
@@ -189,7 +189,7 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
                 permissions:
                     contents: write
                 runs-on: ubuntu-latest
-                timeout-minutes: 10
+                timeout-minutes: 20
 
                 steps:
                     - name: generate contribution graph SVGs
@@ -393,17 +393,6 @@ These levels are relative to each user's contribution pattern and are automatica
 3. Pac-Man navigates the grid using pathfinding algorithms
 4. Ghosts chase Pac-Man with unique behaviors (as in the original game)
 5. All gameplay is recorded and exported as an animated SVG
-
-## 👻 Ghosts Personalities
-
-Each ghost has been given new looks and personalities that are true to the original game.
-
-|       Ghost        |                                        Preview                                        | Behavior                                                                                                                                                                     |
-| :----------------: | :-----------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  **Blinky** (red)  |  <p align="center"><img src="assets/gifs/red_flip.gif" height="40" alt="Blinky"></p>  | An aggressive stalker who targets Pac-Man directly. He gets faster when there are only a few dots left on the map, which players call "Elroy mode".                          |
-|  **Pinky** (pink)  |  <p align="center"><img src="assets/gifs/pink_flip.gif" height="40" alt="Pinky"></p>  | Strategist who tries to ambush Pac-Man by positioning himself 4 spaces ahead of his current direction. He specializes in traps and ambushes.                                 |
-|  **Inky** (cyan)   |  <p align="center"><img src="assets/gifs/cyan_flip.gif" height="40" alt="Inky"></p>   | Unpredictable and complex. Uses Blinky's position as a reference for his movement, calculating a vector that passes through Pac-Man and then doubling that distance.         |
-| **Clyde** (orange) | <p align="center"><img src="assets/gifs/orange_flip.gif" height="40" alt="Clyde"></p> | Shy and erratic. Chases Pac-Man when he is far away, but when he gets closer than 8 spaces away, he runs away to his corner. This "shy" behavior makes him less predictable. |
 
 ## 🤝 Contributing
 
