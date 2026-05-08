@@ -6,16 +6,13 @@
 	"homepage": "https://abozanona.github.io/pacman-contribution-graph/",
 	"type": "module",
 	"main": "dist/pacman-contribution-graph.min.js",
-	"types": "dist/index.d.ts",
 	"exports": {
 		".": {
-			"import": "./dist/pacman-contribution-graph.min.js",
-			"types": "./dist/index.d.ts"
+			"import": "./dist/pacman-contribution-graph.min.js"
 		}
 	},
 	"files": [
 		"dist/pacman-contribution-graph.min.js",
-		"dist/index.d.ts",
 		"action.yml"
 	],
 	"keywords": [
