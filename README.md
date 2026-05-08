@@ -1,4 +1,4 @@
-# 👻 Pac-Man Contribution Graph Game
+# 👻🧱 Arcade Contribution Graph Games
 
 ![Active users count][active-users-shield]
 [![Forks][forks-shield]][forks-url]
@@ -7,7 +7,18 @@
 [![Stand with Palestine][stand-with-palestine-shield]][stand-with-palestine-url]
 [![Buy Me a Coffee][buy-me-a-coffee-shield]][buy-me-a-coffee-url]
 
-Transform your GitHub or GitLab contribution graph into an interactive Pac-Man game! This JavaScript library offers a unique and engaging way to visualize your coding activity over the past year.
+Transform your GitHub or GitLab contribution graph into arcade games! This JavaScript library offers a unique and engaging way to visualize your coding activity over the past year.
+
+## 🕹️ Available Games
+
+| Game            | Description                                             | Source                                  |
+| --------------- | ------------------------------------------------------- | --------------------------------------- |
+| 👻 **Pac-Man**  | Pac-Man eats your contributions while ghosts give chase | [src/pacman/](src/pacman/README.md)     |
+| 🧱 **Breakout** | A ball bounces around breaking your contribution bricks | [src/breakout/](src/breakout/README.md) |
+
+More games coming soon!
+
+### Pac-Man preview
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/pacman-contribution-graph-dark.svg">
@@ -20,7 +31,7 @@ Transform your GitHub or GitLab contribution graph into an interactive Pac-Man g
 Elevate your GitHub profile with the Pac-Man Contribution Graph Game and add a playful touch to your coding journey!
 
 - **Contribution Visualization**: Converts your GitHub or GitLab contribution data into a colorful grid.
-- **Pac-Man Gameplay**: Classic Pac-Man mechanics where commits are edible dots
+- **Multiple Games**: Classic Pac-Man and Breakout, with more planned
 - **Multiple Themes**: Choose between different themes, such as GitHub Dark and GitLab Dark.
 - **Customizable Settings**: Adjust game settings.
 - **GitHub Integration**: Automatically fetches your contribution data via GraphQL API
@@ -28,8 +39,7 @@ Elevate your GitHub profile with the Pac-Man Contribution Graph Game and add a p
 
 ## 🕹️ Demo
 
-Experience the game firsthand:
-
+Experience the games firsthand:
 **Live Demo**: [Pac-Man Contribution Game](https://abozanona.github.io/pacman-contribution-graph/)
 
 ## 🔧 Installation
@@ -43,42 +53,84 @@ npm install pacman-contribution-graph
 Alternatively, include it directly in your HTML using jsDelivr:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/pacman-contribution-graph@2.0.0/dist/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pacman-contribution-graph/dist/pacman-contribution-graph.min.js"></script>
 ```
 
 ## 🧩 Usage
 
-Here's how to set up and run the Pac-Man Contribution Graph:
+Here's how to set up and run the games:
 
 1. **Include the Library**: Ensure the library is included in your project, either via npm or a script tag.
-2. **Initialize the Game**: Use the following code to generate the game:
+2. **Initialize the Game**: Use the following code to generate an arcade game:
+
+    **Pac-Man:**
 
     ```javascript
-    import { generatePacManGame } from 'pacman-contribution-graph';
+    import { PacmanRenderer, PlayerStyle } from 'pacman-contribution-graph';
 
-    generatePacManGame({
+    const renderer = new PacmanRenderer({
     	username: 'your_username',
     	platform: 'github', // or 'gitlab'
-    	theme: 'github-dark', // or 'gitlab-dark'
-    	speed: 2
+    	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
+    	playerStyle: PlayerStyle.OPPORTUNISTIC, // CONSERVATIVE, AGGRESSIVE, or OPPORTUNISTIC
+    	svgCallback: (svg) => {
+    		// called with the generated SVG string
+    		document.getElementById('output').innerHTML = svg;
+    	},
+    	gameOverCallback: () => {
+    		console.log('Game over!');
+    	},
+    	pointsIncreasedCallback: (points) => {
+    		console.log('Score:', points);
+    	}
     });
+    renderer.start();
+    ```
+
+    **Breakout:**
+
+    ```javascript
+    import { BreakoutRenderer } from 'pacman-contribution-graph';
+
+    const renderer = new BreakoutRenderer({
+    	username: 'your_username',
+    	platform: 'github', // or 'gitlab'
+    	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
+    	svgCallback: (svg) => {
+    		document.getElementById('output').innerHTML = svg;
+    	},
+    	gameOverCallback: () => {
+    		console.log('Game over!');
+    	},
+    	pointsIncreasedCallback: (points) => {
+    		console.log('Score:', points);
+    	}
+    });
+    renderer.start();
     ```
 
 3. **Customize Settings**: Adjust the parameters as needed:
     - `username`: Your GitHub or GitLab username.
     - `platform`: Specify `'github'` or `'gitlab'`.
-    - `theme`: Choose between available themes.
-    - `speed`: Set the game speed (e.g., `1` for normal, `2` for fast).
+    - `gameTheme`: Choose between `'github'`, `'github-dark'`, `'gitlab'`, or `'gitlab-dark'`.
+    - `playerStyle` _(Pac-Man only)_: `PlayerStyle.OPPORTUNISTIC` (default), `PlayerStyle.CONSERVATIVE`, or `PlayerStyle.AGGRESSIVE`.
+    - `svgCallback`: Called with the finished SVG string once generation is complete.
+    - `gameOverCallback`: Called when the game finishes.
+    - `pointsIncreasedCallback`: Called each time the score increases.
+    - `gameStatsCallback`: Called at the end with `{ totalScore, steps, ghostsEaten }`.
+    - `githubSettings`: `{ accessToken: 'your_token' }` for private contribution data.
 
 ## Integrate into Your GitHub Profile
 
 To showcase the Pac-Man game on your GitHub profile, follow these steps:
 
 1. **Create a Special Repository**:
+
     - Name a new repository exactly as your GitHub username (e.g., `username/username`).
     - This repository powers your GitHub profile page.
 
 2. **Set Up GitHub Actions**:
+
     - In the repository, create a `.github/workflows/` directory.
     - Add a `main.yml` file with the following content:
 
@@ -117,6 +169,7 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
         ```
 
 3. **Add to Profile README**:
+
     - In your repository, create or edit the `README.md` file to include:
 
         ```markdown
@@ -139,16 +192,19 @@ For a detailed guide, refer to the blog post: [Integrate Pac-Man Contribution Gr
 To showcase the Pac-Man game on your GitLab profile, follow these steps:
 
 1. **Create a Special Repository**:
+
     - Name a new repository exactly as your GitLab username (e.g., `username/username`).
     - This repository powers your GitLab profile page.
 
 2. **Generate & Setup Push Token**:
+
     - Open the repository, and from left sidebar navigate to settings => Access Token tab.
     - Generate a new Access Token with the name `CI/CD Push Token` & scope `write_repository`. Access tokens are only valid for 1 year maximum.
     - From left sidebar navigate to settings => CI/CD.
     - In Variables section, add a new variable with the name `CI_PUSH_TOKEN` and the value of the Access Token. Make sure that the variable is `Masked` & `Protect`.
 
 3. **Set Up `gitlab-ci` File**:
+
     - In the repository, create a `.gitlab-ci.yml` file with the following content.
 
         ```yaml
@@ -198,6 +254,7 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
         ```
 
 4. **Add to Profile README**:
+
     - In your repository, create or edit the `README.md` file to include:
 
         ```markdown
@@ -211,6 +268,7 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
         ```
 
 5. **Commit and Push**:
+
     - Push the changes to GitHub. The Gitlab pipeline will work once, updating the Pac-Man game on your profile.
 
 6. **Schedule pipeline running**

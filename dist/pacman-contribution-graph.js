@@ -1,22 +1,635 @@
 /******/ var __webpack_modules__ = ({
 
-/***/ "./src/core/constants.ts":
+/***/ "./src/breakout/core/constants.ts":
+/*!****************************************!*\
+  !*** ./src/breakout/core/constants.ts ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BALL_COLOR: () => (/* binding */ BALL_COLOR),
+/* harmony export */   BALL_INITIAL_DX: () => (/* binding */ BALL_INITIAL_DX),
+/* harmony export */   BALL_INITIAL_DY: () => (/* binding */ BALL_INITIAL_DY),
+/* harmony export */   BALL_RADIUS: () => (/* binding */ BALL_RADIUS),
+/* harmony export */   BALL_SHADOW_COLOR: () => (/* binding */ BALL_SHADOW_COLOR),
+/* harmony export */   BALL_TARGETING_THRESHOLD: () => (/* binding */ BALL_TARGETING_THRESHOLD),
+/* harmony export */   CELL_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE),
+/* harmony export */   DELTA_TIME: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.DELTA_TIME),
+/* harmony export */   GAME_THEMES: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES),
+/* harmony export */   GAP_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE),
+/* harmony export */   GRID_HEIGHT: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT),
+/* harmony export */   GRID_WIDTH: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH),
+/* harmony export */   MAX_BOUNCE_ANGLE: () => (/* binding */ MAX_BOUNCE_ANGLE),
+/* harmony export */   PADDLE_COLOR: () => (/* binding */ PADDLE_COLOR),
+/* harmony export */   PADDLE_HEIGHT: () => (/* binding */ PADDLE_HEIGHT),
+/* harmony export */   PADDLE_SPEED: () => (/* binding */ PADDLE_SPEED),
+/* harmony export */   PADDLE_WIDTH: () => (/* binding */ PADDLE_WIDTH),
+/* harmony export */   PADDLE_Y: () => (/* binding */ PADDLE_Y)
+/* harmony export */ });
+/* harmony import */ var _shared_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/constants */ "./src/shared/constants.ts");
+/* ─── Re-export shared constants so breakout code has one import location ─── */
+
+/* ───────────── Ball ───────────── */
+/** Ball radius in grid units (slightly less than half a cell) */
+const BALL_RADIUS = 0.21;
+/** Initial ball speed components (grid units per frame). The ratio is
+ *  intentionally irrational so the ball path is non-repeating.
+ *  Keep each component < 1.0 so the ball never skips over a grid cell. */
+const BALL_INITIAL_DX = 0.75;
+const BALL_INITIAL_DY = -0.95;
+/* ───────────── Paddle ───────────── */
+/** Paddle width in grid units */
+const PADDLE_WIDTH = 7;
+/** Maximum horizontal distance the paddle moves per frame */
+const PADDLE_SPEED = 2.0;
+/** Paddle Y position in grid units (just below the last row) */
+const PADDLE_Y = 7.4;
+/** Paddle height in grid units */
+const PADDLE_HEIGHT = 0.5;
+/**
+ * Maximum bounce angle (degrees from vertical) when the ball hits the paddle edge.
+ * Centre hit = straight up (0°). Far edge = MAX_BOUNCE_ANGLE either side.
+ */
+const MAX_BOUNCE_ANGLE = 65;
+/* ───────────── AI ───────────── */
+/** If the ball has not hit a brick for this many frames, force-target
+ *  the nearest remaining brick to avoid stalling. */
+const BALL_TARGETING_THRESHOLD = 10;
+/* ───────────── Visual ───────────── */
+const BALL_COLOR = '#ffffff';
+const PADDLE_COLOR = '#ffffff';
+const BALL_SHADOW_COLOR = '#aaaaaa';
+
+
+/***/ }),
+
+/***/ "./src/breakout/core/game.ts":
+/*!***********************************!*\
+  !*** ./src/breakout/core/game.ts ***!
+  \***********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BreakoutGame: () => (/* binding */ BreakoutGame)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../renderers/svg */ "./src/breakout/renderers/svg.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./constants */ "./src/breakout/core/constants.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+/** Fraction of a grid unit occupied by the visible brick face (gap excluded). */
+const CELL_RATIO = _constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE / (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE); // ≈ 0.909
+/** Ordered levels from weakest to strongest. */
+const LEVEL_ORDER = ['NONE', 'FIRST_QUARTILE', 'SECOND_QUARTILE', 'THIRD_QUARTILE', 'FOURTH_QUARTILE'];
+/** Return the level one step below the given level (minimum NONE). */
+const decrementLevel = (level) => {
+    const idx = LEVEL_ORDER.indexOf(level);
+    return LEVEL_ORDER[Math.max(0, idx - 1)];
+};
+/* ────────────────── Initialise game state ────────────────── */
+const placeBall = (store) => {
+    store.ball = {
+        x: _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH / 2,
+        y: _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y - 1.5,
+        dx: _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_INITIAL_DX,
+        dy: _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_INITIAL_DY // negative = moving upward toward bricks
+    };
+};
+const placePaddle = (store) => {
+    store.paddle = {
+        x: (_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH) / 2,
+        width: _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH
+    };
+};
+/* ────────────────── Main loop ────────────────── */
+const startGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    store.frameCount = 0;
+    store.framesSinceLastBrickHit = 0;
+    store.gameHistory = [];
+    store.brickEvents = [];
+    store.grid = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.createGridFromData(store);
+    // Snapshot initial colors before any bricks are hit (used by SVG renderer)
+    store.initialColors = store.grid.map((col) => col.map((cell) => cell.color));
+    const totalBricks = store.grid.reduce((sum, col) => sum + col.filter((c) => c.commitsCount > 0).length, 0);
+    if (totalBricks === 0) {
+        const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_1__.BreakoutSVG.generateAnimatedSVG(store);
+        store.config.svgCallback(svg);
+        store.config.gameOverCallback();
+        return;
+    }
+    placeBall(store);
+    placePaddle(store);
+    store.targetBrick = pickRandomTarget(store);
+    store.bouncesSinceTargetSet = 0;
+    const MAX_FRAMES = 3000;
+    while (store.grid.some((col) => col.some((c) => c.commitsCount > 0)) && store.frameCount < MAX_FRAMES) {
+        updateGame(store);
+        if (store.frameCount % 200 === 0) {
+            const rem = store.grid.reduce((sum, col) => sum + col.filter((c) => c.commitsCount > 0).length, 0);
+        }
+    }
+    const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_1__.BreakoutSVG.generateAnimatedSVG(store);
+    store.config.svgCallback(svg);
+    if (store.config.gameStatsCallback) {
+        store.config.gameStatsCallback({
+            totalScore: countBrokenBricks(store),
+            steps: store.frameCount,
+            ghostsEaten: 0
+        });
+    }
+    store.config.gameOverCallback();
+});
+const stopGame = (_store) => { };
+/* ────────────────── Per-frame update ────────────────── */
+const updateGame = (store) => {
+    var _a, _b;
+    store.frameCount++;
+    const { ball, paddle, grid } = store;
+    // ── Sub-step movement ─────────────────────────────────────────────────
+    // Split each frame into small steps so the ball never travels more than
+    // BALL_RADIUS in a single step, preventing tunnelling through bricks.
+    const speed = Math.hypot(ball.dx, ball.dy);
+    const subSteps = Math.ceil(speed / _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS);
+    const dt = 1 / subSteps;
+    for (let s = 0; s < subSteps; s++) {
+        ball.x += ball.dx * dt;
+        ball.y += ball.dy * dt;
+        // ── Wall collisions ────────────────────────────────────────────────
+        if (ball.x - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS <= 0) {
+            ball.x = _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS;
+            ball.dx = Math.abs(ball.dx);
+        }
+        if (ball.x + _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH) {
+            ball.x = _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS;
+            ball.dx = -Math.abs(ball.dx);
+        }
+        if (ball.y - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS <= 0) {
+            ball.y = _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS;
+            ball.dy = Math.abs(ball.dy);
+        }
+        // ── Paddle collision ───────────────────────────────────────────────
+        const paddleLeft = paddle.x;
+        const paddleRight = paddle.x + _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH;
+        if (ball.dy > 0 &&
+            ball.y + _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS >= _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y &&
+            ball.y - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS < _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y + 0.5 &&
+            ball.x >= paddleLeft - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS &&
+            ball.x <= paddleRight + _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS) {
+            ball.y = _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS;
+            // Angle-based bounce: hit position on paddle maps linearly to angle.
+            // Centre → straight up (0°). Far edges → ±MAX_BOUNCE_ANGLE from vertical.
+            const paddleCenter = paddleLeft + _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH / 2;
+            const hitOffset = Math.max(-1, Math.min(1, (ball.x - paddleCenter) / (_constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH / 2)));
+            const speed = Math.hypot(ball.dx, ball.dy);
+            const rad = hitOffset * _constants__WEBPACK_IMPORTED_MODULE_2__.MAX_BOUNCE_ANGLE * (Math.PI / 180);
+            ball.dx = speed * Math.sin(rad);
+            ball.dy = -speed * Math.cos(rad); // always upward
+            // Count paddle bounces without hitting the current target.
+            // After 5 misses, give up and pick a new random target.
+            store.bouncesSinceTargetSet++;
+            if (store.bouncesSinceTargetSet >= 5) {
+                store.targetBrick = pickRandomTarget(store);
+                store.bouncesSinceTargetSet = 0;
+            }
+        }
+        // Safety: ball fell past the paddle
+        if (ball.y > _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y + 1) {
+            ball.x = _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH / 2;
+            ball.y = _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y - 1.5;
+            ball.dy = -Math.abs(ball.dy);
+        }
+        // ── Brick collision (circle-vs-AABB, edge-precise) ────────────────
+        const colMin = Math.max(0, Math.floor(ball.x - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS));
+        const colMax = Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - 1, Math.floor(ball.x + _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS));
+        const rowMin = Math.max(0, Math.floor(ball.y - _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS));
+        const rowMax = Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT - 1, Math.floor(ball.y + _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS));
+        let flipDx = false;
+        let flipDy = false;
+        const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+        for (let cx = colMin; cx <= colMax; cx++) {
+            for (let cy = rowMin; cy <= rowMax; cy++) {
+                if (grid[cx][cy].commitsCount === 0)
+                    continue;
+                // Nearest point on the visible brick face (gap excluded)
+                const nearX = Math.max(cx, Math.min(cx + CELL_RATIO, ball.x));
+                const nearY = Math.max(cy, Math.min(cy + CELL_RATIO, ball.y));
+                const distSq = Math.pow((ball.x - nearX), 2) + Math.pow((ball.y - nearY), 2);
+                if (distSq >= _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS * _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS)
+                    continue; // no overlap
+                // ── Reduce brick level by one hit ──────────────────────────
+                const oldLevel = grid[cx][cy].level;
+                const newLevel = decrementLevel(oldLevel);
+                grid[cx][cy].level = newLevel;
+                if (newLevel === 'NONE') {
+                    grid[cx][cy].commitsCount = 0;
+                    grid[cx][cy].color = theme.intensityColors[0];
+                    // If this was the current target, pick a new one immediately
+                    if (((_a = store.targetBrick) === null || _a === void 0 ? void 0 : _a.cx) === cx && ((_b = store.targetBrick) === null || _b === void 0 ? void 0 : _b.cy) === cy) {
+                        store.targetBrick = pickRandomTarget(store);
+                        store.bouncesSinceTargetSet = 0;
+                    }
+                }
+                else {
+                    const levelIndex = LEVEL_ORDER.indexOf(newLevel);
+                    grid[cx][cy].color = theme.intensityColors[levelIndex];
+                }
+                // Record color-change event keyed to the upcoming gameHistory index
+                store.brickEvents.push({ frameIndex: store.gameHistory.length, x: cx, y: cy, color: grid[cx][cy].color });
+                // Push ball out of brick and determine bounce axis
+                const penX = _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS - Math.abs(ball.x - nearX);
+                const penY = _constants__WEBPACK_IMPORTED_MODULE_2__.BALL_RADIUS - Math.abs(ball.y - nearY);
+                if (penX <= penY) {
+                    ball.x += ball.dx < 0 ? penX : -penX;
+                    flipDx = true;
+                }
+                else {
+                    ball.y += ball.dy < 0 ? penY : -penY;
+                    flipDy = true;
+                }
+                store.framesSinceLastBrickHit = 0;
+                store.config.pointsIncreasedCallback(countBrokenBricks(store));
+            }
+        }
+        if (flipDx)
+            ball.dx = -ball.dx;
+        if (flipDy)
+            ball.dy = -ball.dy;
+    }
+    // ── Paddle AI — position to aim at the current target brick ──────────
+    if (ball.dy > 0 && store.targetBrick) {
+        const target = store.targetBrick;
+        // Predict where the ball will cross the paddle level (accounting for wall bounces)
+        const timeToLand = (_constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y - ball.y) / ball.dy;
+        let predictedX = ball.x + ball.dx * timeToLand;
+        // Fold wall reflections
+        predictedX = Math.abs(((predictedX % (2 * _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH)) + 2 * _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH) % (2 * _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH));
+        if (predictedX > _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH)
+            predictedX = 2 * _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - predictedX;
+        // Required angle to reach target from predicted landing x
+        const tx = target.cx + 0.5;
+        const ty = target.cy + 0.5;
+        const vertDist = _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_Y - ty; // positive: target is above paddle
+        const horizDist = tx - predictedX;
+        const targetAngleDeg = Math.atan2(horizDist, Math.max(vertDist, 0.5)) * (180 / Math.PI);
+        const clampedAngle = Math.max(-_constants__WEBPACK_IMPORTED_MODULE_2__.MAX_BOUNCE_ANGLE, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.MAX_BOUNCE_ANGLE, targetAngleDeg));
+        // Hit offset that would produce this angle
+        const desiredHitOffset = clampedAngle / _constants__WEBPACK_IMPORTED_MODULE_2__.MAX_BOUNCE_ANGLE; // [-1, 1]
+        // Paddle must be positioned so ball lands at the right spot
+        const desiredPaddleCenter = predictedX - desiredHitOffset * (_constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH / 2);
+        const desiredPaddleX = Math.max(0, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH, desiredPaddleCenter - _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH / 2));
+        // Move paddle toward the desired position
+        if (paddle.x < desiredPaddleX - _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_SPEED) {
+            paddle.x += _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_SPEED;
+        }
+        else if (paddle.x > desiredPaddleX + _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_SPEED) {
+            paddle.x -= _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_SPEED;
+        }
+        else {
+            paddle.x = desiredPaddleX;
+        }
+    }
+    else if (ball.dy > 0) {
+        // No target: just track the ball so it doesn't miss
+        const paddleCenter = paddle.x + _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH / 2;
+        if (paddleCenter < ball.x - 0.5)
+            paddle.x = Math.min(paddle.x + _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_SPEED, _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_WIDTH);
+        else if (paddleCenter > ball.x + 0.5)
+            paddle.x = Math.max(paddle.x - _constants__WEBPACK_IMPORTED_MODULE_2__.PADDLE_SPEED, 0);
+    }
+    // ── Snapshot ───────────────────────────────────────────────────────────
+    pushSnapshot(store);
+};
+/* ────────────────── Helpers ────────────────── */
+const pushSnapshot = (store) => {
+    // Only ball + paddle — brick changes are tracked separately in brickEvents
+    store.gameHistory.push({
+        ball: Object.assign({}, store.ball),
+        paddle: Object.assign({}, store.paddle)
+    });
+};
+const countBrokenBricks = (store) => {
+    let broken = 0;
+    store.grid.forEach((col) => col.forEach((cell) => {
+        if (cell.commitsCount === 0)
+            broken++;
+    }));
+    return broken;
+};
+/** Pick a random live brick as the AI's next target. */
+const pickRandomTarget = (store) => {
+    var _a, _b;
+    const live = [];
+    for (let cx = 0; cx < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH; cx++) {
+        for (let cy = 0; cy < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT; cy++) {
+            if (((_b = (_a = store.grid[cx]) === null || _a === void 0 ? void 0 : _a[cy]) === null || _b === void 0 ? void 0 : _b.commitsCount) > 0)
+                live.push({ cx, cy });
+        }
+    }
+    if (live.length === 0)
+        return null;
+    return live[Math.floor(Math.random() * live.length)];
+};
+const BreakoutGame = {
+    startGame,
+    stopGame
+};
+
+
+/***/ }),
+
+/***/ "./src/breakout/core/store.ts":
+/*!************************************!*\
+  !*** ./src/breakout/core/store.ts ***!
+  \************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BreakoutStore: () => (/* binding */ BreakoutStore)
+/* harmony export */ });
+const BreakoutStore = {
+    frameCount: 0,
+    contributions: [],
+    ball: { x: 0, y: 0, dx: 0, dy: 0 },
+    paddle: { x: 0, width: 7 },
+    grid: [],
+    monthLabels: [],
+    framesSinceLastBrickHit: 0,
+    targetBrick: null,
+    bouncesSinceTargetSet: 0,
+    gameHistory: [],
+    initialColors: [],
+    brickEvents: [],
+    config: undefined
+};
+
+
+/***/ }),
+
+/***/ "./src/breakout/index.ts":
 /*!*******************************!*\
-  !*** ./src/core/constants.ts ***!
+  !*** ./src/breakout/index.ts ***!
   \*******************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   CELL_SIZE: () => (/* binding */ CELL_SIZE),
-/* harmony export */   DELTA_TIME: () => (/* binding */ DELTA_TIME),
-/* harmony export */   GAME_THEMES: () => (/* binding */ GAME_THEMES),
-/* harmony export */   GAP_SIZE: () => (/* binding */ GAP_SIZE),
+/* harmony export */   BreakoutRenderer: () => (/* binding */ BreakoutRenderer)
+/* harmony export */ });
+/* harmony import */ var _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../shared/providers/providers */ "./src/shared/providers/providers.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./core/game */ "./src/breakout/core/game.ts");
+/* harmony import */ var _core_store__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./core/store */ "./src/breakout/core/store.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+class BreakoutRenderer {
+    constructor(conf) {
+        this.conf = Object.assign({}, conf);
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const defaultConfig = {
+                platform: 'github',
+                username: '',
+                svgCallback: (_) => { },
+                gameOverCallback: () => { },
+                gameTheme: 'github',
+                pointsIncreasedCallback: (_) => { },
+                githubSettings: { accessToken: '' }
+            };
+            this.store = JSON.parse(JSON.stringify(_core_store__WEBPACK_IMPORTED_MODULE_3__.BreakoutStore));
+            this.store.config = Object.assign(Object.assign({}, defaultConfig), this.conf);
+            switch (this.store.config.platform) {
+                case 'gitlab':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGitlabContributions(this.store);
+                    break;
+                case 'github':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGithubContributions(this.store);
+                    break;
+                default:
+                    throw new Error(`Unsupported platform: ${this.store.config.platform}`);
+            }
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildGrid(this.store);
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildMonthLabels(this.store);
+            yield _core_game__WEBPACK_IMPORTED_MODULE_2__.BreakoutGame.startGame(this.store);
+            return this.store;
+        });
+    }
+    stop() {
+        _core_game__WEBPACK_IMPORTED_MODULE_2__.BreakoutGame.stopGame(this.store);
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/breakout/renderers/svg.ts":
+/*!***************************************!*\
+  !*** ./src/breakout/renderers/svg.ts ***!
+  \***************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BreakoutSVG: () => (/* binding */ BreakoutSVG)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../core/constants */ "./src/breakout/core/constants.ts");
+
+
+const SVG_PRECISION = 4;
+/** Convert a grid-unit x coordinate to SVG pixels */
+const toSvgX = (gx) => gx * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+/** Convert a grid-unit y coordinate to SVG pixels (offset by month-label area) */
+const toSvgY = (gy) => gy * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + 15;
+const generateAnimatedSVG = (store) => {
+    const svgWidth = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+    // Extra height: 15px month labels + grid + 40px paddle area
+    const paddleAreaHeight = 40;
+    const svgHeight = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + 15 + paddleAreaHeight;
+    const totalDurationMs = (store.gameHistory.length * _core_constants__WEBPACK_IMPORTED_MODULE_1__.DELTA_TIME) / 2;
+    const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+    let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
+    svg += `<desc>Generated with breakout-contribution-graph on ${new Date()}</desc>`;
+    svg += `<metadata>
+		<info>
+			<frames>${store.gameHistory.length}</frames>
+			<frameRate>${1000 / _core_constants__WEBPACK_IMPORTED_MODULE_1__.DELTA_TIME}</frameRate>
+			<durationMs>${totalDurationMs}</durationMs>
+			<generatedOn>${new Date().toISOString()}</generatedOn>
+		</info>
+	</metadata>`;
+    svg += `<rect width="100%" height="100%" fill="${theme.gridBackground}"/>`;
+    // ── Month labels ─────────────────────────────────────────────────────
+    let lastMonth = '';
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        if (store.monthLabels[x] !== lastMonth) {
+            const xPos = x * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+            svg += `<text x="${xPos}" y="10" text-anchor="middle" font-size="10" fill="${theme.textColor}">${store.monthLabels[x]}</text>`;
+            lastMonth = store.monthLabels[x];
+        }
+    }
+    // ── Grid cells (bricks) ───────────────────────────────────────────────
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        for (let y = 0; y < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT; y++) {
+            const cellX = toSvgX(x);
+            const cellY = toSvgY(y);
+            const colorAnim = getCellAnimationData(store, x, y);
+            svg += `<rect id="c-${x}-${y}" x="${cellX}" y="${cellY}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}" rx="3" fill="${theme.intensityColors[0]}">
+				<animate attributeName="fill" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+					values="${colorAnim.values}" keyTimes="${colorAnim.keyTimes}"/>
+			</rect>`;
+        }
+    }
+    // ── Ball ──────────────────────────────────────────────────────────────
+    const ballR = Math.round(_core_constants__WEBPACK_IMPORTED_MODULE_1__.BALL_RADIUS * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE));
+    const ballPosAnim = buildChangingValuesAnimation(store, getBallPositions(store));
+    // cx/cy are 0 so animateTransform translate values are absolute SVG coords
+    svg += `<circle id="ball" cx="0" cy="0" r="${ballR}" fill="${theme.wallColor}" stroke="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BALL_SHADOW_COLOR}" stroke-width="1">
+		<animateTransform attributeName="transform" type="translate"
+			calcMode="linear"
+			dur="${totalDurationMs}ms" repeatCount="indefinite"
+			keyTimes="${ballPosAnim.keyTimes}"
+			values="${ballPosAnim.values}"/>
+	</circle>`;
+    // ── Paddle ────────────────────────────────────────────────────────────
+    const paddleSvgY = toSvgY(_core_constants__WEBPACK_IMPORTED_MODULE_1__.PADDLE_Y);
+    const paddleW = Math.round(_core_constants__WEBPACK_IMPORTED_MODULE_1__.PADDLE_WIDTH * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+    const paddleH = Math.round(_core_constants__WEBPACK_IMPORTED_MODULE_1__.PADDLE_HEIGHT * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE));
+    const paddlePosAnim = buildChangingValuesAnimation(store, getPaddlePositions(store));
+    // x=0 so animateTransform translate values drive the horizontal position
+    svg += `<rect id="paddle" x="0" y="${paddleSvgY}" width="${paddleW}" height="${paddleH}" rx="3" fill="${theme.wallColor}">
+		<animateTransform attributeName="transform" type="translate"
+			calcMode="linear"
+			dur="${totalDurationMs}ms" repeatCount="indefinite"
+			keyTimes="${paddlePosAnim.keyTimes}"
+			values="${paddlePosAnim.values}"/>
+	</rect>`;
+    svg += '</svg>';
+    return svg;
+};
+/* ────────────────── Animation helpers ────────────────── */
+/**
+ * Build cell color animation data directly from brickEvents.
+ * Much cheaper than per-frame grid snapshots: only records actual changes.
+ */
+const getCellAnimationData = (store, x, y) => {
+    var _a, _b;
+    const totalFrames = store.gameHistory.length;
+    const initialColor = (_b = (_a = store.initialColors[x]) === null || _a === void 0 ? void 0 : _a[y]) !== null && _b !== void 0 ? _b : '#ebedf0';
+    const events = store.brickEvents.filter((e) => e.x === x && e.y === y);
+    if (events.length === 0) {
+        return { keyTimes: '0;1', values: `${initialColor};${initialColor}` };
+    }
+    const kTimes = [0];
+    const kValues = [initialColor];
+    for (const ev of events) {
+        const t = Number((ev.frameIndex / Math.max(totalFrames - 1, 1)).toFixed(SVG_PRECISION));
+        // Avoid duplicate keyTimes (two events in the same frame)
+        if (t !== kTimes[kTimes.length - 1]) {
+            kTimes.push(t);
+            kValues.push(ev.color);
+        }
+        else {
+            kValues[kValues.length - 1] = ev.color; // overwrite same-frame event
+        }
+    }
+    if (kTimes[kTimes.length - 1] !== 1) {
+        kTimes.push(1);
+        kValues.push(kValues[kValues.length - 1]);
+    }
+    return { keyTimes: kTimes.join(';'), values: kValues.join(';') };
+};
+const getBallPositions = (store) => store.gameHistory.map((frame) => {
+    const svgX = toSvgX(frame.ball.x);
+    const svgY = toSvgY(frame.ball.y);
+    return `${svgX},${svgY}`;
+});
+const getPaddlePositions = (store) => store.gameHistory.map((frame) => `${toSvgX(frame.paddle.x)},0`);
+/**
+ * Compresses an array of per-frame values into a compact SVG animation
+ * (keyTimes + values), skipping redundant frames.
+ */
+const buildChangingValuesAnimation = (store, values) => {
+    var _a, _b, _c, _d;
+    const totalFrames = store.gameHistory.length;
+    if (totalFrames === 0) {
+        const v = (_a = values[0]) !== null && _a !== void 0 ? _a : '0,0';
+        return { keyTimes: '0;1', values: `${v};${v}` };
+    }
+    const keyTimes = [];
+    const keyValues = [];
+    let lastValue = null;
+    let lastIndex = null;
+    values.forEach((curr, idx) => {
+        if (curr !== lastValue) {
+            if (lastValue !== null && lastIndex !== null && idx - 1 !== lastIndex) {
+                keyTimes.push(Number(((idx - 1) / (totalFrames - 1)).toFixed(SVG_PRECISION)));
+                keyValues.push(lastValue);
+            }
+            keyTimes.push(Number((idx / (totalFrames - 1)).toFixed(SVG_PRECISION)));
+            keyValues.push(curr);
+            lastValue = curr;
+            lastIndex = idx;
+        }
+    });
+    if (keyTimes.length === 0 || keyTimes[keyTimes.length - 1] !== 1) {
+        if (keyTimes.length === 0) {
+            keyTimes.push(0, 1);
+            keyValues.push((_b = values[0]) !== null && _b !== void 0 ? _b : '0,0', (_c = values[values.length - 1]) !== null && _c !== void 0 ? _c : '0,0');
+        }
+        else {
+            keyTimes.push(1);
+            keyValues.push((_d = lastValue !== null && lastValue !== void 0 ? lastValue : values[values.length - 1]) !== null && _d !== void 0 ? _d : '0,0');
+        }
+    }
+    return { keyTimes: keyTimes.join(';'), values: keyValues.join(';') };
+};
+const BreakoutSVG = { generateAnimatedSVG };
+
+
+/***/ }),
+
+/***/ "./src/pacman/core/constants.ts":
+/*!**************************************!*\
+  !*** ./src/pacman/core/constants.ts ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   CELL_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE),
+/* harmony export */   DELTA_TIME: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.DELTA_TIME),
+/* harmony export */   GAME_THEMES: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES),
+/* harmony export */   GAP_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE),
 /* harmony export */   GHOSTS: () => (/* binding */ GHOSTS),
 /* harmony export */   GHOST_NAMES: () => (/* binding */ GHOST_NAMES),
-/* harmony export */   GRID_HEIGHT: () => (/* binding */ GRID_HEIGHT),
-/* harmony export */   GRID_WIDTH: () => (/* binding */ GRID_WIDTH),
-/* harmony export */   MONTHS: () => (/* binding */ MONTHS),
+/* harmony export */   GRID_HEIGHT: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT),
+/* harmony export */   GRID_WIDTH: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH),
+/* harmony export */   MONTHS: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.MONTHS),
 /* harmony export */   PACMAN_COLOR: () => (/* binding */ PACMAN_COLOR),
 /* harmony export */   PACMAN_COLOR_DEAD: () => (/* binding */ PACMAN_COLOR_DEAD),
 /* harmony export */   PACMAN_COLOR_POWERUP: () => (/* binding */ PACMAN_COLOR_POWERUP),
@@ -26,54 +639,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   hasWall: () => (/* binding */ hasWall),
 /* harmony export */   setWall: () => (/* binding */ setWall)
 /* harmony export */ });
-/* ───────────── General settings ───────────── */
-const CELL_SIZE = 20;
-const GAP_SIZE = 2;
-const GRID_WIDTH = 53; // 52 weeks + current week
-const GRID_HEIGHT = 7; // Sun … Sat
+/* harmony import */ var _shared_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/constants */ "./src/shared/constants.ts");
+/* ─── Re-export shared constants so pacman code has one import location ─── */
+
+/* ───────────── Pacman colours ───────────── */
 const PACMAN_COLOR = 'yellow';
 const PACMAN_COLOR_POWERUP = 'red';
 const PACMAN_COLOR_DEAD = '#80808064';
 const GHOST_NAMES = ['blinky', 'clyde', 'inky', 'pinky', 'eyes'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const DELTA_TIME = 200;
 const PACMAN_DEATH_DURATION = 10;
 const PACMAN_POWERUP_DURATION = 15;
-/* ───────────── Official GitHub Palettes ─────────────
-   5-color array: 0 = NONE … 4 = FOURTH_QUARTILE          */
-const GITHUB_LIGHT = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
-const GITHUB_DARK = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'];
-const GITLAB_LIGHT = ['#ececef', '#d2dcff', '#7992f5', '#4e65cd', '#303470'];
-const GITLAB_DARK = ['#2a2a3d', '#4a5bdc', '#2e3dbf', '#1b2e8a', '#0f1a4e'];
-/* ───────────── Game Themes ───────────── */
-const GAME_THEMES = {
-    /* ---------- GitHub ---------- */
-    github: {
-        textColor: '#57606a',
-        gridBackground: '#ffffff',
-        wallColor: '#000000',
-        intensityColors: GITHUB_LIGHT
-    },
-    'github-dark': {
-        textColor: '#8b949e',
-        gridBackground: '#0d1117',
-        wallColor: '#ffffff',
-        intensityColors: GITHUB_DARK
-    },
-    /* ---------- GitLab ---------- */
-    gitlab: {
-        textColor: '#626167',
-        gridBackground: '#ffffff',
-        wallColor: '#000000',
-        intensityColors: GITLAB_LIGHT
-    },
-    'gitlab-dark': {
-        textColor: '#999999',
-        gridBackground: '#1f1f1f',
-        wallColor: '#ffffff',
-        intensityColors: GITLAB_DARK
-    }
-};
+/* ───────────── Ghost sprites (base64) ───────────── */
 const GHOSTS = {
     blinky: {
         up: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABiklEQVR4nIXSO2sVURQF4G8mMwa8QU2KxFcjCoIgacR/oCBYCP4fsTEIBkWwEK21UAQLIdjYaKEiJIXBXhNBCFaSeDP3zLa4mdyj5rHgwNmPtffZ62z+Q4miKHlWs3yALwUvKYphbC8UjDN3nIUB/SCCSDRnWKiZVxTFrvxp5kMRHbEltaTODuIED3YkT3FnUy+uS815qQkzMSJOxAWpuSo1A72Y4f5f5DFuBpE+vmsmZ9ukF9Eu/xwV+Pw1TEYcOtum9GmxCaLmdl7jeRDp968mcnQFMqS02bSkMV5tS36UBL6t7ixO6o/uK6sKymM0Q9l5NKC/Ldb3lWGrqenRCw73hr61H9viDujjKbztnLnae50uF4sl1nf91/2xvt9q7YuyEwKCNg+2DFoGue/fnHLoGwbyZQ/akqqkykkFZW6XmNy6VJdYyhPP8eE07/PCl1kqqbbMI3BrjY1rvMH4SW4kmou86Eac5UmiOcUcxq/wep2NirugYh4TXfOah6izUauax5leB2vuwR+e2vAshd8i9AAAAABJRU5ErkJggg==',
@@ -109,13 +685,15 @@ const GHOSTS = {
         imgDate: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAADCklEQVR4nFWSX2hbZRjGf993vnN60qSNXWva6JpR7f5km7qrWrVUXYt2HdOCk2FBoQiDsivxRmU3XggiKIIIuxgOpxeyKsL8A8IoaJVNrMy4Mant2qZbMxKX5k/TmJ6cfJ8Xyao+8PK8F89z8bzPK7gDIcHo+t42GGbwmzk8vwJCIi2HH4d7KfxcAgFCbGkFANIB7cH2l3exc+IVCHfRtn8Mzb/IJ6YQpSxzp94h9enSHY9CyLq5Z3If8ddO0xrrpwr4/B/tDz2PDbj37EW5x1k5PYeQSIyBHcfjxN84QzDWz0a1jNY+1n/MFqC1z0a1TKhnkH0nP2L7xE6MQSAkPH7lPJG9R6j4FXzlstkwBQADlBscAKiWabGbWZ39hJm+lxRGg59PgdFUpdrWDf1xWCvBpV8AG548CIEAXEiAl5aKmtF42RsYgyK4x8EKtSOFZMPo8SfggxfqJ7CPgAjA9Ov1JIffh2/PC0lYSJy2KKHdjmLw0gJN4W48o1FS3S7UxVfSdTYa0lXotKFQAiyp8IxmW98EAz88LBgtpnBaovU6G9kdoAZ4jaKdBnuAbgxAJTuvMEajgHXts1nzcJWLKyQ1YN2vANCqXCRQ1j5ezaNJKlosB6NrEltIbsKJ5zLXrp8rrr44ml1gyWiaSunfPs4tz54p3MAq32bZ6MljxdXr59ZvTR7NJ0kBtrQEQ7nlN09IVS7mkn/mOnp778olH3nw7t1/ZQs3f5q3bNuynIE4tIbc8MU/iqnFW8GOAztKmU3jht869XdOIYRMZyuFzy/H+jO/Ctl1wN+MdRZTiRU7cPbLth4UNDnF1T1dpczZ75vbM4lgZPaxYGSkN30VI6TgUH4FK9xNevpd2iL307J/jIzRmHySyldvo4HmZ08iWu8lIiTFxBS57ArRg6/ip6/C4VKapy9/Rug+m8gzXYzOX2DcGIYSU1uvPHTta8aN4dDcd3Q81U5wl8PI718wkl2A4eRFQg+4W+LosRhH1xZ5dPo9hAJhw8DMh4ytLdI5Ft3ShfuCDC/N/AMdtzXsl7IlxgAAAABJRU5ErkJggg=='
     }
 };
+/* ───────────── Wall data ───────────── */
+
 const WALLS = {
-    horizontal: Array(GRID_WIDTH + 1)
+    horizontal: Array(_shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH + 1)
         .fill(null)
-        .map(() => Array(GRID_HEIGHT + 1).fill({ active: false, id: '' })),
-    vertical: Array(GRID_WIDTH + 1)
+        .map(() => Array(_shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT + 1).fill({ active: false, id: '' })),
+    vertical: Array(_shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH + 1)
         .fill(null)
-        .map(() => Array(GRID_HEIGHT + 1).fill({ active: false, id: '' }))
+        .map(() => Array(_shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT + 1).fill({ active: false, id: '' }))
 };
 const setWall = (x, y, direction, lineId, color) => {
     if (direction === 'horizontal') {
@@ -145,10 +723,10 @@ const hasWall = (x, y, direction) => {
 
 /***/ }),
 
-/***/ "./src/core/game.ts":
-/*!**************************!*\
-  !*** ./src/core/game.ts ***!
-  \**************************/
+/***/ "./src/pacman/core/game.ts":
+/*!*********************************!*\
+  !*** ./src/pacman/core/game.ts ***!
+  \*********************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -156,11 +734,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   Game: () => (/* binding */ Game),
 /* harmony export */   determineGhostName: () => (/* binding */ determineGhostName)
 /* harmony export */ });
-/* harmony import */ var _movement_ghosts_movement__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../movement/ghosts-movement */ "./src/movement/ghosts-movement.ts");
-/* harmony import */ var _movement_pacman_movement__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../movement/pacman-movement */ "./src/movement/pacman-movement.ts");
-/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../renderers/svg */ "./src/renderers/svg.ts");
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
-/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./constants */ "./src/core/constants.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _movement_ghosts_movement__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../movement/ghosts-movement */ "./src/pacman/movement/ghosts-movement.ts");
+/* harmony import */ var _movement_pacman_movement__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../movement/pacman-movement */ "./src/pacman/movement/pacman-movement.ts");
+/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../renderers/svg */ "./src/pacman/renderers/svg.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./constants */ "./src/pacman/core/constants.ts");
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -240,13 +818,10 @@ const placeGhosts = (store) => {
             justReleasedFromHouse: false
         }
     ];
-    // reset extras
     store.ghosts.forEach((g) => {
         g.justReleasedFromHouse = false;
         g.respawnCounter = 0;
-        // Set different directions to create an asynchronous motion effect
         if (g.inHouse) {
-            // Distribute the initial directions so that everyone is not synchronized
             if (g.name === 'inky')
                 g.direction = 'up';
             else if (g.name === 'pinky')
@@ -263,9 +838,9 @@ const stopGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
 const startGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     store.frameCount = 0;
     store.aliveSteps = 0;
-    store.gameHistory = []; // keeps clean
+    store.gameHistory = [];
     store.ghosts.forEach((g) => (g.scared = false));
-    store.grid = _utils_utils__WEBPACK_IMPORTED_MODULE_3__.Utils.createGridFromData(store);
+    store.grid = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.createGridFromData(store);
     const remainingCells = () => store.grid.some((row) => row.some((cell) => cell.commitsCount > 0));
     if (remainingCells()) {
         placePacman(store);
@@ -274,7 +849,6 @@ const startGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     while (remainingCells()) {
         yield updateGame(store);
     }
-    // snapshot final
     yield updateGame(store);
 });
 /* ---------- utilities ---------- */
@@ -292,7 +866,6 @@ const determineGhostName = (index) => {
 const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     store.frameCount++;
-    /* -------- pacman timers -------- */
     if (store.pacman.deadRemainingDuration > 0) {
         store.pacman.deadRemainingDuration--;
         if (store.pacman.deadRemainingDuration === 0) {
@@ -310,7 +883,6 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
             store.pacman.points = 0;
         }
     }
-    /* -- ghost respawn -- */
     store.ghosts.forEach((ghost) => {
         if (ghost.inHouse && ghost.respawnCounter && ghost.respawnCounter > 0) {
             ghost.respawnCounter--;
@@ -328,10 +900,9 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
             }
         }
     });
-    /* -------- end of game -------- */
     const remaining = store.grid.some((row) => row.some((c) => c.commitsCount > 0));
     if (!remaining) {
-        const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_2__.SVG.generateAnimatedSVG(store);
+        const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_3__.SVG.generateAnimatedSVG(store);
         store.config.svgCallback(svg);
         if (store.config.gameStatsCallback) {
             store.config.gameStatsCallback({
@@ -343,8 +914,7 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
         store.config.gameOverCallback();
         return;
     }
-    /* -------- movements -------- */
-    _movement_pacman_movement__WEBPACK_IMPORTED_MODULE_1__.PacmanMovement.movePacman(store);
+    _movement_pacman_movement__WEBPACK_IMPORTED_MODULE_2__.PacmanMovement.movePacman(store);
     const cell = (_b = store.grid[store.pacman.x]) === null || _b === void 0 ? void 0 : _b[store.pacman.y];
     if (cell && cell.level === 'FOURTH_QUARTILE' && store.pacman.powerupRemainingDuration === 0) {
         store.pacman.powerupRemainingDuration = 30;
@@ -355,15 +925,13 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     }
     checkCollisions(store);
     if (store.pacman.deadRemainingDuration === 0) {
-        _movement_ghosts_movement__WEBPACK_IMPORTED_MODULE_0__.GhostsMovement.moveGhosts(store);
+        _movement_ghosts_movement__WEBPACK_IMPORTED_MODULE_1__.GhostsMovement.moveGhosts(store);
         checkCollisions(store);
     }
     store.pacmanMouthOpen = !store.pacmanMouthOpen;
-    /* ---- alive-steps counter ---- */
     if (store.pacman.deadRemainingDuration === 0) {
         store.aliveSteps++;
     }
-    /* ---- live stats update ---- */
     if (store.config.gameStatsCallback) {
         store.config.gameStatsCallback({
             totalScore: store.pacman.totalPoints,
@@ -371,7 +939,6 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
             ghostsEaten: (_c = store.pacman.ghostsEaten) !== null && _c !== void 0 ? _c : 0
         });
     }
-    /* ---- single snapshot per frame ---- */
     pushSnapshot(store);
 });
 /* ---------- snapshot helper ---------- */
@@ -388,7 +955,6 @@ const checkCollisions = (store) => {
         return;
     store.ghosts.forEach((ghost) => {
         var _a;
-        // If the ghost is eyes, there should be no collision
         if (ghost.name === 'eyes')
             return;
         if (ghost.x === store.pacman.x && ghost.y === store.pacman.y) {
@@ -426,10 +992,10 @@ const Game = {
 
 /***/ }),
 
-/***/ "./src/core/store.ts":
-/*!***************************!*\
-  !*** ./src/core/store.ts ***!
-  \***************************/
+/***/ "./src/pacman/core/store.ts":
+/*!**********************************!*\
+  !*** ./src/pacman/core/store.ts ***!
+  \**********************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -464,18 +1030,94 @@ const Store = {
 
 /***/ }),
 
-/***/ "./src/movement/ghosts-movement.ts":
-/*!*****************************************!*\
-  !*** ./src/movement/ghosts-movement.ts ***!
-  \*****************************************/
+/***/ "./src/pacman/index.ts":
+/*!*****************************!*\
+  !*** ./src/pacman/index.ts ***!
+  \*****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PacmanRenderer: () => (/* binding */ PacmanRenderer),
+/* harmony export */   PlayerStyle: () => (/* reexport safe */ _types__WEBPACK_IMPORTED_MODULE_4__.PlayerStyle)
+/* harmony export */ });
+/* harmony import */ var _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../shared/providers/providers */ "./src/shared/providers/providers.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./core/game */ "./src/pacman/core/game.ts");
+/* harmony import */ var _core_store__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./core/store */ "./src/pacman/core/store.ts");
+/* harmony import */ var _types__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./types */ "./src/pacman/types.ts");
+/* harmony import */ var _utils_grid__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./utils/grid */ "./src/pacman/utils/grid.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+class PacmanRenderer {
+    constructor(conf) {
+        this.conf = Object.assign({}, conf);
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const defaultConfig = {
+                platform: 'github',
+                username: '',
+                svgCallback: (_) => { },
+                gameOverCallback: () => { },
+                gameTheme: 'github',
+                pointsIncreasedCallback: (_) => { },
+                githubSettings: { accessToken: '' },
+                playerStyle: _types__WEBPACK_IMPORTED_MODULE_4__.PlayerStyle.OPPORTUNISTIC
+            };
+            this.store = JSON.parse(JSON.stringify(_core_store__WEBPACK_IMPORTED_MODULE_3__.Store));
+            this.store.config = Object.assign(Object.assign({}, defaultConfig), this.conf);
+            switch (this.store.config.platform) {
+                case 'gitlab':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGitlabContributions(this.store);
+                    break;
+                case 'github':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGithubContributions(this.store);
+                    break;
+                default:
+                    throw new Error(`Unsupported platform: ${this.store.config.platform}`);
+            }
+            _utils_grid__WEBPACK_IMPORTED_MODULE_5__.Grid.buildWalls();
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildGrid(this.store);
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildMonthLabels(this.store);
+            yield _core_game__WEBPACK_IMPORTED_MODULE_2__.Game.startGame(this.store);
+            return this.store;
+        });
+    }
+    stop() {
+        _core_game__WEBPACK_IMPORTED_MODULE_2__.Game.stopGame(this.store);
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/pacman/movement/ghosts-movement.ts":
+/*!************************************************!*\
+  !*** ./src/pacman/movement/ghosts-movement.ts ***!
+  \************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   GhostsMovement: () => (/* binding */ GhostsMovement)
 /* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
-/* harmony import */ var _movement_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./movement-utils */ "./src/movement/movement-utils.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/pacman/core/constants.ts");
+/* harmony import */ var _movement_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./movement-utils */ "./src/pacman/movement/movement-utils.ts");
 
 
 // Constants for ghost behavior
@@ -984,25 +1626,24 @@ const GhostsMovement = {
 
 /***/ }),
 
-/***/ "./src/movement/movement-utils.ts":
-/*!****************************************!*\
-  !*** ./src/movement/movement-utils.ts ***!
-  \****************************************/
+/***/ "./src/pacman/movement/movement-utils.ts":
+/*!***********************************************!*\
+  !*** ./src/pacman/movement/movement-utils.ts ***!
+  \***********************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   MovementUtils: () => (/* binding */ MovementUtils)
 /* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/pacman/core/constants.ts");
 
-// Check for walls and grid edges
 const getValidMoves = (x, y) => {
     const directions = [
         [-1, 0],
         [1, 0],
         [0, -1],
-        [0, 1] // down
+        [0, 1]
     ];
     return directions.filter(([dx, dy]) => {
         const newX = x + dx;
@@ -1031,18 +1672,12 @@ const calculateDistance = (x1, y1, x2, y2) => {
 const MovementUtils = {
     getValidMoves,
     calculateDistance,
-    /**
-     * Dijkstra's 4-way grid.
-     * Returns the NEXT step (not the entire route) or null if none.
-     */
     findNextStepDijkstra(start, target) {
-        var _a;
         if (start.x === target.x && start.y === target.y)
             return null;
         const pq = [Object.assign(Object.assign({}, start), { cost: 0, path: [] })];
         const visited = new Set([`${start.x},${start.y}`]);
         while (pq.length) {
-            // min-heap “manual”
             pq.sort((a, b) => a.cost - b.cost);
             const { x, y, cost, path } = pq.shift();
             for (const [dx, dy] of getValidMoves(x, y)) {
@@ -1050,12 +1685,11 @@ const MovementUtils = {
                 if (visited.has(key))
                     continue;
                 visited.add(key);
-                const nextCost = cost + 1; // unit cost
                 const newPath = [...path, { x: nx, y: ny }];
                 if (nx === target.x && ny === target.y) {
-                    return (_a = newPath[0]) !== null && _a !== void 0 ? _a : null;
+                    return newPath.length > 0 ? newPath[0] : null;
                 }
-                pq.push({ x: nx, y: ny, cost: nextCost, path: newPath });
+                pq.push({ x: nx, y: ny, cost: cost + 1, path: newPath });
             }
         }
         return null;
@@ -1065,20 +1699,20 @@ const MovementUtils = {
 
 /***/ }),
 
-/***/ "./src/movement/pacman-movement.ts":
-/*!*****************************************!*\
-  !*** ./src/movement/pacman-movement.ts ***!
-  \*****************************************/
+/***/ "./src/pacman/movement/pacman-movement.ts":
+/*!************************************************!*\
+  !*** ./src/pacman/movement/pacman-movement.ts ***!
+  \************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   PacmanMovement: () => (/* binding */ PacmanMovement)
 /* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
-/* harmony import */ var _types__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../types */ "./src/types.ts");
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
-/* harmony import */ var _movement_utils__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./movement-utils */ "./src/movement/movement-utils.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/pacman/core/constants.ts");
+/* harmony import */ var _types__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../types */ "./src/pacman/types.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _movement_utils__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./movement-utils */ "./src/pacman/movement/movement-utils.ts");
 
 
 
@@ -1328,7 +1962,7 @@ const checkAndEatPoint = (store) => {
         store.pacman.totalPoints += cell.commitsCount;
         store.pacman.points++;
         store.config.pointsIncreasedCallback(store.pacman.totalPoints);
-        const theme = _utils_utils__WEBPACK_IMPORTED_MODULE_2__.Utils.getCurrentTheme(store);
+        const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_2__.Utils.getCurrentTheme(store);
         // Power-up activated in the cell
         if (cell.level === 'FOURTH_QUARTILE') {
             activatePowerUp(store);
@@ -1350,215 +1984,17 @@ const PacmanMovement = {
 
 /***/ }),
 
-/***/ "./src/providers/github-contributions.ts":
-/*!***********************************************!*\
-  !*** ./src/providers/github-contributions.ts ***!
-  \***********************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   fetchGithubContributions: () => (/* binding */ fetchGithubContributions)
-/* harmony export */ });
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-const fetchGithubContributions = (store) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    if ((_a = store.config.githubSettings) === null || _a === void 0 ? void 0 : _a.accessToken) {
-        return yield fetchGithubContributionsGraphQL(store);
-    }
-    else {
-        return yield fetchGithubContributionsRest(store);
-    }
-});
-const fetchGithubContributionsRest = (store) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c;
-    const commits = [];
-    let isComplete = false;
-    let page = 1;
-    do {
-        try {
-            const headers = {};
-            if ((_b = store.config.githubSettings) === null || _b === void 0 ? void 0 : _b.accessToken) {
-                headers['Authorization'] = 'Bearer ' + store.config.githubSettings.accessToken;
-            }
-            const response = yield fetch(`https://api.github.com/search/commits?q=author:${store.config.username}&sort=author-date&order=desc&page=${page}&per_page=100`, { headers });
-            const data = yield response.json();
-            isComplete = !data.items || data.items.length === 0;
-            commits.push(...((_c = data.items) !== null && _c !== void 0 ? _c : []));
-            page++;
-        }
-        catch (_d) {
-            isComplete = true;
-        }
-    } while (!isComplete);
-    const contributions = Array.from(commits
-        .reduce((map, item) => {
-        var _a, _b, _c, _d;
-        const authorDateStr = (_b = (_a = item.commit.author) === null || _a === void 0 ? void 0 : _a.date) === null || _b === void 0 ? void 0 : _b.split('T')[0];
-        const committerDateStr = (_d = (_c = item.commit.committer) === null || _c === void 0 ? void 0 : _c.date) === null || _d === void 0 ? void 0 : _d.split('T')[0];
-        const keyDate = committerDateStr || authorDateStr;
-        const count = (map.get(keyDate) || { count: 0 }).count + 1;
-        return map.set(keyDate, {
-            date: new Date(keyDate),
-            count,
-            color: '',
-            level: 'NONE'
-        });
-    }, new Map())
-        .values());
-    // Find the max non-zero contribution count
-    const maxCount = Math.max(...contributions.map((el) => el.count).filter((c) => c > 0));
-    return contributions.map((c) => {
-        const level = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.calculateContributionLevel)(c.count, maxCount);
-        const theme = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.getCurrentTheme)(store);
-        return {
-            date: new Date(c.date),
-            count: c.count,
-            color: theme.intensityColors[(0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.levelToIndex)(level)],
-            level
-        };
-    });
-});
-const fetchGithubContributionsGraphQL = (store) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
-    const query = /* GraphQL */ `
-		query ($login: String!) {
-			user(login: $login) {
-				contributionsCollection {
-					contributionCalendar {
-						weeks {
-							contributionDays {
-								date
-								contributionCount
-								color
-								contributionLevel
-							}
-						}
-					}
-				}
-			}
-		}
-	`;
-    const response = yield fetch('https://api.github.com/graphql', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${(_e = store.config.githubSettings) === null || _e === void 0 ? void 0 : _e.accessToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query, variables: { login: store.config.username } })
-    });
-    if (!response.ok) {
-        throw new Error(`GitHub GraphQL request failed: ${response.status} ${response.statusText}`);
-    }
-    const json = (yield response.json());
-    return json.data.user.contributionsCollection.contributionCalendar.weeks
-        .map((week) => week.contributionDays)
-        .reduce((acc, days) => acc.concat(days), [])
-        .map((d) => {
-        const level = d.contributionLevel;
-        const theme = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.getCurrentTheme)(store);
-        return {
-            date: new Date(d.date),
-            count: d.contributionCount,
-            color: theme.intensityColors[(0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.levelToIndex)(level)],
-            level
-        };
-    });
-});
-
-
-/***/ }),
-
-/***/ "./src/providers/gitlab-contributions.ts":
-/*!***********************************************!*\
-  !*** ./src/providers/gitlab-contributions.ts ***!
-  \***********************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   fetchGitlabContributions: () => (/* binding */ fetchGitlabContributions)
-/* harmony export */ });
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-const fetchGitlabContributions = (store) => __awaiter(void 0, void 0, void 0, function* () {
-    const response = yield fetch(`https://v0-new-project-q1hhrdodoye-abozanona-gmailcoms-projects.vercel.app/api/contributions?username=${store.config.username}`);
-    const contributionsList = yield response.json();
-    const contributions = Object.entries(contributionsList).map(([date, count]) => ({
-        date: new Date(date),
-        count: Number(count),
-        color: '',
-        level: 'NONE'
-    }));
-    // Find the max non-zero contribution count
-    const maxCount = Math.max(...contributions.map((el) => el.count).filter((c) => c > 0));
-    return contributions.map((c) => {
-        const level = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.calculateContributionLevel)(c.count, maxCount);
-        const theme = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.getCurrentTheme)(store);
-        return {
-            date: new Date(c.date),
-            count: c.count,
-            color: theme.intensityColors[(0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.levelToIndex)(level)],
-            level
-        };
-    });
-});
-
-
-/***/ }),
-
-/***/ "./src/providers/providers.ts":
-/*!************************************!*\
-  !*** ./src/providers/providers.ts ***!
-  \************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   Providers: () => (/* binding */ Providers)
-/* harmony export */ });
-/* harmony import */ var _github_contributions__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./github-contributions */ "./src/providers/github-contributions.ts");
-/* harmony import */ var _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./gitlab-contributions */ "./src/providers/gitlab-contributions.ts");
-
-
-const Providers = {
-    fetchGithubContributions: _github_contributions__WEBPACK_IMPORTED_MODULE_0__.fetchGithubContributions,
-    fetchGitlabContributions: _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__.fetchGitlabContributions
-};
-
-
-/***/ }),
-
-/***/ "./src/renderers/renderer-units.ts":
-/*!*****************************************!*\
-  !*** ./src/renderers/renderer-units.ts ***!
-  \*****************************************/
+/***/ "./src/pacman/renderers/renderer-units.ts":
+/*!************************************************!*\
+  !*** ./src/pacman/renderers/renderer-units.ts ***!
+  \************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   RendererUnits: () => (/* binding */ RendererUnits)
 /* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/pacman/core/constants.ts");
 
 const generatePacManColors = (pacman) => {
     if (pacman.deadRemainingDuration) {
@@ -1578,19 +2014,19 @@ const RendererUnits = {
 
 /***/ }),
 
-/***/ "./src/renderers/svg.ts":
-/*!******************************!*\
-  !*** ./src/renderers/svg.ts ***!
-  \******************************/
+/***/ "./src/pacman/renderers/svg.ts":
+/*!*************************************!*\
+  !*** ./src/pacman/renderers/svg.ts ***!
+  \*************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   SVG: () => (/* binding */ SVG)
 /* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
-/* harmony import */ var _renderer_units__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./renderer-units */ "./src/renderers/renderer-units.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/pacman/core/constants.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _renderer_units__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./renderer-units */ "./src/pacman/renderers/renderer-units.ts");
 
 
 
@@ -1611,14 +2047,14 @@ const generateAnimatedSVG = (store) => {
 			<generatedOn>${new Date().toISOString()}</generatedOn>
 		</info>
 	</metadata>`;
-    svg += `<rect width="100%" height="100%" fill="${_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).gridBackground}"/>`;
+    svg += `<rect width="100%" height="100%" fill="${_shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).gridBackground}"/>`;
     svg += generateGhostsPredefinition();
     // Month labels
     let lastMonth = '';
     for (let y = 0; y < _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH; y++) {
         if (store.monthLabels[y] !== lastMonth) {
             const xPos = y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
-            svg += `<text x="${xPos}" y="10" text-anchor="middle" font-size="10" fill="${_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).textColor}">${store.monthLabels[y]}</text>`;
+            svg += `<text x="${xPos}" y="10" text-anchor="middle" font-size="10" fill="${_shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).textColor}">${store.monthLabels[y]}</text>`;
             lastMonth = store.monthLabels[y];
         }
     }
@@ -1628,7 +2064,7 @@ const generateAnimatedSVG = (store) => {
             const cellX = x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE);
             const cellY = y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + 15;
             const cellColorAnimation = generateChangingValuesAnimation(store, generateCellColorValues(store, x, y));
-            svg += `<rect id="c-${x}-${y}" x="${cellX}" y="${cellY}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE}" rx="5" fill="${_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).intensityColors[0]}">
+            svg += `<rect id="c-${x}-${y}" x="${cellX}" y="${cellY}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE}" rx="5" fill="${_shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).intensityColors[0]}">
 				<animate attributeName="fill" dur="${totalDurationMs}ms" repeatCount="indefinite" 
 					values="${cellColorAnimation.values}" 
 					keyTimes="${cellColorAnimation.keyTimes}"/>
@@ -1645,7 +2081,7 @@ const generateAnimatedSVG = (store) => {
             }
             if ((!active || x === _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH) && runStart !== null) {
                 let length = x - runStart;
-                svg += `<rect id="wh-${runStart}-${y}" x="${runStart * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" y="${y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE + 15}" width="${length * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE)}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" fill="${_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).wallColor}"></rect>`;
+                svg += `<rect id="wh-${runStart}-${y}" x="${runStart * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" y="${y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE + 15}" width="${length * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE)}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" fill="${_shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).wallColor}"></rect>`;
                 runStart = null;
             }
         }
@@ -1660,7 +2096,7 @@ const generateAnimatedSVG = (store) => {
             }
             if ((!active || y === _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT) && runStart !== null) {
                 let length = y - runStart;
-                svg += `<rect id="wv-${x}-${runStart}" x="${x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" y="${runStart * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE + 15}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" height="${length * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE)}" fill="${_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).wallColor}"></rect>`;
+                svg += `<rect id="wv-${x}-${runStart}" x="${x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" y="${runStart * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE + 15}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE}" height="${length * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE)}" fill="${_shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.getCurrentTheme(store).wallColor}"></rect>`;
                 runStart = null;
             }
         }
@@ -1950,10 +2386,10 @@ const SVG = {
 
 /***/ }),
 
-/***/ "./src/types.ts":
-/*!**********************!*\
-  !*** ./src/types.ts ***!
-  \**********************/
+/***/ "./src/pacman/types.ts":
+/*!*****************************!*\
+  !*** ./src/pacman/types.ts ***!
+  \*****************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -1970,17 +2406,17 @@ var PlayerStyle;
 
 /***/ }),
 
-/***/ "./src/utils/grid.ts":
-/*!***************************!*\
-  !*** ./src/utils/grid.ts ***!
-  \***************************/
+/***/ "./src/pacman/utils/grid.ts":
+/*!**********************************!*\
+  !*** ./src/pacman/utils/grid.ts ***!
+  \**********************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Grid: () => (/* binding */ Grid)
 /* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/pacman/core/constants.ts");
 
 const setSymmetricWall = (x, y, direction, sym, lineId) => {
     if (direction == 'horizontal') {
@@ -2102,10 +2538,266 @@ const Grid = {
 
 /***/ }),
 
-/***/ "./src/utils/utils.ts":
-/*!****************************!*\
-  !*** ./src/utils/utils.ts ***!
-  \****************************/
+/***/ "./src/shared/constants.ts":
+/*!*********************************!*\
+  !*** ./src/shared/constants.ts ***!
+  \*********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   CELL_SIZE: () => (/* binding */ CELL_SIZE),
+/* harmony export */   DELTA_TIME: () => (/* binding */ DELTA_TIME),
+/* harmony export */   GAME_THEMES: () => (/* binding */ GAME_THEMES),
+/* harmony export */   GAP_SIZE: () => (/* binding */ GAP_SIZE),
+/* harmony export */   GRID_HEIGHT: () => (/* binding */ GRID_HEIGHT),
+/* harmony export */   GRID_WIDTH: () => (/* binding */ GRID_WIDTH),
+/* harmony export */   MONTHS: () => (/* binding */ MONTHS)
+/* harmony export */ });
+/* ───────────── Grid dimensions ───────────── */
+const CELL_SIZE = 20;
+const GAP_SIZE = 2;
+const GRID_WIDTH = 53; // 52 weeks + current week
+const GRID_HEIGHT = 7; // Sun … Sat
+const DELTA_TIME = 200;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/* ───────────── Official GitHub / GitLab Palettes ─────────────
+   5-color array: 0 = NONE … 4 = FOURTH_QUARTILE               */
+const GITHUB_LIGHT = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+const GITHUB_DARK = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'];
+const GITLAB_LIGHT = ['#ececef', '#d2dcff', '#7992f5', '#4e65cd', '#303470'];
+const GITLAB_DARK = ['#2a2a3d', '#4a5bdc', '#2e3dbf', '#1b2e8a', '#0f1a4e'];
+/* ───────────── Game Themes ───────────── */
+const GAME_THEMES = {
+    github: {
+        textColor: '#57606a',
+        gridBackground: '#ffffff',
+        wallColor: '#000000',
+        intensityColors: GITHUB_LIGHT
+    },
+    'github-dark': {
+        textColor: '#8b949e',
+        gridBackground: '#0d1117',
+        wallColor: '#ffffff',
+        intensityColors: GITHUB_DARK
+    },
+    gitlab: {
+        textColor: '#626167',
+        gridBackground: '#ffffff',
+        wallColor: '#000000',
+        intensityColors: GITLAB_LIGHT
+    },
+    'gitlab-dark': {
+        textColor: '#999999',
+        gridBackground: '#1f1f1f',
+        wallColor: '#ffffff',
+        intensityColors: GITLAB_DARK
+    }
+};
+
+
+/***/ }),
+
+/***/ "./src/shared/providers/github-contributions.ts":
+/*!******************************************************!*\
+  !*** ./src/shared/providers/github-contributions.ts ***!
+  \******************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   fetchGithubContributions: () => (/* binding */ fetchGithubContributions)
+/* harmony export */ });
+/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../utils/utils */ "./src/shared/utils/utils.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+const fetchGithubContributions = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    if ((_a = store.config.githubSettings) === null || _a === void 0 ? void 0 : _a.accessToken) {
+        return yield fetchGithubContributionsGraphQL(store);
+    }
+    else {
+        return yield fetchGithubContributionsRest(store);
+    }
+});
+const fetchGithubContributionsRest = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b, _c;
+    const commits = [];
+    let isComplete = false;
+    let page = 1;
+    do {
+        try {
+            const headers = {};
+            if ((_b = store.config.githubSettings) === null || _b === void 0 ? void 0 : _b.accessToken) {
+                headers['Authorization'] = 'Bearer ' + store.config.githubSettings.accessToken;
+            }
+            const response = yield fetch(`https://api.github.com/search/commits?q=author:${store.config.username}&sort=author-date&order=desc&page=${page}&per_page=100`, { headers });
+            const data = yield response.json();
+            isComplete = !data.items || data.items.length === 0;
+            commits.push(...((_c = data.items) !== null && _c !== void 0 ? _c : []));
+            page++;
+        }
+        catch (_d) {
+            isComplete = true;
+        }
+    } while (!isComplete);
+    const contributions = Array.from(commits
+        .reduce((map, item) => {
+        var _a, _b, _c, _d;
+        const authorDateStr = (_b = (_a = item.commit.author) === null || _a === void 0 ? void 0 : _a.date) === null || _b === void 0 ? void 0 : _b.split('T')[0];
+        const committerDateStr = (_d = (_c = item.commit.committer) === null || _c === void 0 ? void 0 : _c.date) === null || _d === void 0 ? void 0 : _d.split('T')[0];
+        const keyDate = committerDateStr || authorDateStr;
+        const count = (map.get(keyDate) || { count: 0 }).count + 1;
+        return map.set(keyDate, {
+            date: new Date(keyDate),
+            count,
+            color: '',
+            level: 'NONE'
+        });
+    }, new Map())
+        .values());
+    const maxCount = Math.max(...contributions.map((el) => el.count).filter((c) => c > 0));
+    return contributions.map((c) => {
+        const level = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.calculateContributionLevel)(c.count, maxCount);
+        const theme = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.getCurrentTheme)(store);
+        return {
+            date: new Date(c.date),
+            count: c.count,
+            color: theme.intensityColors[(0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.levelToIndex)(level)],
+            level
+        };
+    });
+});
+const fetchGithubContributionsGraphQL = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    var _e;
+    const query = /* GraphQL */ `
+		query ($login: String!) {
+			user(login: $login) {
+				contributionsCollection {
+					contributionCalendar {
+						weeks {
+							contributionDays {
+								date
+								contributionCount
+								color
+								contributionLevel
+							}
+						}
+					}
+				}
+			}
+		}
+	`;
+    const response = yield fetch('https://api.github.com/graphql', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${(_e = store.config.githubSettings) === null || _e === void 0 ? void 0 : _e.accessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query, variables: { login: store.config.username } })
+    });
+    if (!response.ok) {
+        throw new Error(`GitHub GraphQL request failed: ${response.status} ${response.statusText}`);
+    }
+    const json = (yield response.json());
+    return json.data.user.contributionsCollection.contributionCalendar.weeks
+        .map((week) => week.contributionDays)
+        .reduce((acc, days) => acc.concat(days), [])
+        .map((d) => {
+        const level = d.contributionLevel;
+        const theme = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.getCurrentTheme)(store);
+        return {
+            date: new Date(d.date),
+            count: d.contributionCount,
+            color: theme.intensityColors[(0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.levelToIndex)(level)],
+            level
+        };
+    });
+});
+
+
+/***/ }),
+
+/***/ "./src/shared/providers/gitlab-contributions.ts":
+/*!******************************************************!*\
+  !*** ./src/shared/providers/gitlab-contributions.ts ***!
+  \******************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   fetchGitlabContributions: () => (/* binding */ fetchGitlabContributions)
+/* harmony export */ });
+/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../utils/utils */ "./src/shared/utils/utils.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+const fetchGitlabContributions = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    const response = yield fetch(`https://v0-new-project-q1hhrdodoye-abozanona-gmailcoms-projects.vercel.app/api/contributions?username=${store.config.username}`);
+    const contributionsList = yield response.json();
+    const contributions = Object.entries(contributionsList).map(([date, count]) => ({
+        date: new Date(date),
+        count: Number(count),
+        color: '',
+        level: 'NONE'
+    }));
+    const maxCount = Math.max(...contributions.map((el) => el.count).filter((c) => c > 0));
+    return contributions.map((c) => {
+        const level = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.calculateContributionLevel)(c.count, maxCount);
+        const theme = (0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.getCurrentTheme)(store);
+        return {
+            date: new Date(c.date),
+            count: c.count,
+            color: theme.intensityColors[(0,_utils_utils__WEBPACK_IMPORTED_MODULE_0__.levelToIndex)(level)],
+            level
+        };
+    });
+});
+
+
+/***/ }),
+
+/***/ "./src/shared/providers/providers.ts":
+/*!*******************************************!*\
+  !*** ./src/shared/providers/providers.ts ***!
+  \*******************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Providers: () => (/* binding */ Providers)
+/* harmony export */ });
+/* harmony import */ var _github_contributions__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./github-contributions */ "./src/shared/providers/github-contributions.ts");
+/* harmony import */ var _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./gitlab-contributions */ "./src/shared/providers/gitlab-contributions.ts");
+
+
+const Providers = {
+    fetchGithubContributions: _github_contributions__WEBPACK_IMPORTED_MODULE_0__.fetchGithubContributions,
+    fetchGitlabContributions: _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__.fetchGitlabContributions
+};
+
+
+/***/ }),
+
+/***/ "./src/shared/utils/utils.ts":
+/*!***********************************!*\
+  !*** ./src/shared/utils/utils.ts ***!
+  \***********************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -2118,13 +2810,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   getCurrentTheme: () => (/* binding */ getCurrentTheme),
 /* harmony export */   levelToIndex: () => (/* binding */ levelToIndex)
 /* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../constants */ "./src/shared/constants.ts");
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
 const weeksBetween = (start, end) => Math.floor((end.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
 const truncateToUTCDate = (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-/* ───────────────────────── Theme and helpers ────────────────────── */
-const getCurrentTheme = (store) => { var _a; return (_a = _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES[store.config.gameTheme]) !== null && _a !== void 0 ? _a : _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES['github']; };
+/* ───────────────────────── Theme helpers ────────────────────── */
+const getCurrentTheme = (store) => { var _a; return (_a = _constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES[store.config.gameTheme]) !== null && _a !== void 0 ? _a : _constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES['github']; };
 const levelToIndex = (level) => {
     switch (level) {
         case 'NONE':
@@ -2143,21 +2835,15 @@ const levelToIndex = (level) => {
 };
 const calculateContributionLevel = (contribution, maxContribution) => {
     const q = maxContribution / 4;
-    if (contribution === 0) {
+    if (contribution === 0)
         return 'NONE';
-    }
-    else if (contribution < q) {
+    if (contribution < q)
         return 'FIRST_QUARTILE';
-    }
-    else if (contribution < 2 * q) {
+    if (contribution < 2 * q)
         return 'SECOND_QUARTILE';
-    }
-    else if (contribution < 3 * q) {
+    if (contribution < 3 * q)
         return 'THIRD_QUARTILE';
-    }
-    else {
-        return 'FOURTH_QUARTILE';
-    }
+    return 'FOURTH_QUARTILE';
 };
 const buildGrid = (store) => {
     const endDate = truncateToUTCDate(new Date());
@@ -2165,7 +2851,7 @@ const buildGrid = (store) => {
     startDate.setUTCDate(endDate.getUTCDate() - 365);
     startDate.setUTCDate(startDate.getUTCDate() - startDate.getUTCDay());
     const realWidth = 53;
-    const grid = Array.from({ length: realWidth }, () => Array.from({ length: _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT }, () => ({
+    const grid = Array.from({ length: realWidth }, () => Array.from({ length: _constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT }, () => ({
         commitsCount: 0,
         color: getCurrentTheme(store).intensityColors[0],
         level: 'NONE'
@@ -2199,13 +2885,12 @@ const buildMonthLabels = (store) => {
         const date = new Date(startDate);
         date.setUTCDate(date.getUTCDate() + week * 7);
         const currentMonth = date.toLocaleString('default', { month: 'short' });
-        // Only enter the name if it has changed month in relation to the last one
         if (currentMonth !== lastMonth) {
             labels[week] = currentMonth;
             lastMonth = currentMonth;
         }
     }
-    store.monthLabels = realWidth > _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH ? labels.slice(realWidth - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH) : labels;
+    store.monthLabels = realWidth > _constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH ? labels.slice(realWidth - _constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH) : labels;
 };
 const createGridFromData = (store) => {
     buildGrid(store);
@@ -2286,73 +2971,20 @@ var __webpack_exports__ = {};
   \**********************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   PacmanRenderer: () => (/* binding */ PacmanRenderer)
+/* harmony export */   BreakoutRenderer: () => (/* reexport safe */ _breakout_index__WEBPACK_IMPORTED_MODULE_0__.BreakoutRenderer),
+/* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_1__.PacmanRenderer),
+/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle)
 /* harmony export */ });
-/* harmony import */ var _core_game__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./core/game */ "./src/core/game.ts");
-/* harmony import */ var _core_store__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./core/store */ "./src/core/store.ts");
-/* harmony import */ var _providers_providers__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./providers/providers */ "./src/providers/providers.ts");
-/* harmony import */ var _types__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./types */ "./src/types.ts");
-/* harmony import */ var _utils_grid__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./utils/grid */ "./src/utils/grid.ts");
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./utils/utils */ "./src/utils/utils.ts");
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
+/* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./breakout/index */ "./src/breakout/index.ts");
+/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
 
 
-
-
-
-
-class PacmanRenderer {
-    constructor(conf) {
-        this.conf = Object.assign({}, conf);
-    }
-    start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const defaultConfig = {
-                platform: 'github',
-                username: '',
-                svgCallback: (_) => { },
-                gameOverCallback: () => { },
-                gameTheme: 'github',
-                pointsIncreasedCallback: (_) => { },
-                githubSettings: { accessToken: '' },
-                playerStyle: _types__WEBPACK_IMPORTED_MODULE_3__.PlayerStyle.OPPORTUNISTIC
-            };
-            // Reset the store on each call to start()
-            this.store = JSON.parse(JSON.stringify(_core_store__WEBPACK_IMPORTED_MODULE_1__.Store));
-            this.store.config = Object.assign(Object.assign({}, defaultConfig), this.conf);
-            switch (this.store.config.platform) {
-                case 'gitlab':
-                    this.store.contributions = yield _providers_providers__WEBPACK_IMPORTED_MODULE_2__.Providers.fetchGitlabContributions(this.store);
-                    break;
-                case 'github':
-                    this.store.contributions = yield _providers_providers__WEBPACK_IMPORTED_MODULE_2__.Providers.fetchGithubContributions(this.store);
-                    break;
-                default:
-                    throw new Error(`Unsupported platform: ${this.store.config.platform}`);
-            }
-            _utils_grid__WEBPACK_IMPORTED_MODULE_4__.Grid.buildWalls();
-            _utils_utils__WEBPACK_IMPORTED_MODULE_5__.Utils.buildGrid(this.store);
-            _utils_utils__WEBPACK_IMPORTED_MODULE_5__.Utils.buildMonthLabels(this.store);
-            yield _core_game__WEBPACK_IMPORTED_MODULE_0__.Game.startGame(this.store);
-            return this.store;
-        });
-    }
-    stop() {
-        _core_game__WEBPACK_IMPORTED_MODULE_0__.Game.stopGame(this.store);
-    }
-}
 
 })();
 
+var __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
 var __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
-export { __webpack_exports__PacmanRenderer as PacmanRenderer };
+var __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
+export { __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle };
 
 //# sourceMappingURL=pacman-contribution-graph.js.map

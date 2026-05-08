@@ -4,7 +4,7 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="google-site-verification" content="ETILrgmBZ33RjlxJh-ybUFcIlIyKXyefMvxbxC6LmOU" />
-		<title>Pac-Man Contributions Game</title>
+		<title>Contribution Graph Games</title>
 		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 		<style>
@@ -85,7 +85,7 @@
 	<body>
 		<nav class="navbar navbar-expand-lg fixed-top">
 			<div class="container">
-				<a class="navbar-brand" href="https://abozanona.github.io/pacman-contribution-graph/">Pac-Man Contributions</a>
+				<a class="navbar-brand" href="https://abozanona.github.io/pacman-contribution-graph/">Contribution Graph Games</a>
 				<button
 					class="navbar-toggler"
 					type="button"
@@ -127,12 +127,11 @@
 
 		<div class="container">
 			<div class="jumbotron">
-				<h1 class="display-4">Pac-Man Contributions Game</h1>
-				<p class="lead">Turn your GitHub or GitLab contributions into an interactive Pac-Man game!</p>
+				<h1 class="display-4">Contribution Graph Games</h1>
+				<p class="lead">Turn your GitHub or GitLab contributions into arcade games — Pac-Man, Breakout, and more!</p>
 				<hr class="my-4" />
 				<p>
-					This project allows you to visualize your contribution graph as a playable Pac-Man game. Set up your preferences,
-					generate the game, and have fun while showcasing your coding activity.
+					Visualize your contribution graph as a playable animated SVG. Pick a game, set up your preferences, and embed the result anywhere.
 				</p>
 			</div>
 
@@ -166,6 +165,15 @@
 				<div class="row">
 					<div class="col-md-6">
 						<div class="mb-3">
+							<label for="game" class="form-label">Game</label>
+							<select id="game" class="form-select">
+								<option value="pacman">👻 Pac-Man</option>
+								<option value="breakout">🧱 Breakout</option>
+							</select>
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div class="mb-3">
 							<label for="platform" class="form-label">Platform</label>
 							<select id="platform" class="form-select">
 								<option value="github">GitHub</option>
@@ -173,6 +181,8 @@
 							</select>
 						</div>
 					</div>
+				</div>
+				<div class="row">
 					<div class="col-md-6">
 						<div class="mb-3">
 							<label for="theme" class="form-label">Theme:</label>
@@ -223,7 +233,7 @@
 									/>
 								</div>
 							</div>
-							<div class="col-md-6">
+						<div class="col-md-6" id="playerStyleRow">
 								<div class="mb-3">
 									<label for="playerStyle" class="form-label">Player Style:</label>
 									<select id="playerStyle" class="form-select">
@@ -246,9 +256,9 @@
 					<br />
 					<button id="downloadSvg" class="btn btn-success mt-3" style="display: none">Download SVG</button>
 				</div>
-				<div>Score: <span id="points">0</span></div>
-				<div>Steps: <span id="steps">0</span></div>
-				<div>Ghosts eaten: <span id="ghostsEaten">0</span></div>
+				<div id="statScore">Score: <span id="points">0</span></div>
+				<div id="statSteps">Steps: <span id="steps">0</span></div>
+				<div id="statGhosts">Ghosts eaten: <span id="ghostsEaten">0</span></div>
 			</div>
 
 			<div class="section">
@@ -477,14 +487,15 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 		<script type="module">
-			import { PacmanRenderer } from './dist/pacman-contribution-graph.js';
+			import { PacmanRenderer, BreakoutRenderer } from './dist/pacman-contribution-graph.js';
 
 			const generateButton = document.getElementById('generate');
 			const usernameInput = document.getElementById('username');
 			const platformSelect = document.getElementById('platform');
-			const outputSelect = document.getElementById('output');
+			const gameSelect = document.getElementById('game');
 			const themeSelect = document.getElementById('theme');
 			const playerStyleSelect = document.getElementById('playerStyle');
+			const playerStyleRow = document.getElementById('playerStyleRow');
 			const svgContainer = document.getElementById('svgContainer');
 			const svgHolder = document.getElementById('svgholder');
 			const downloadSvgButton = document.getElementById('downloadSvg');
@@ -492,8 +503,16 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 			const userNotFound = document.getElementById('userNotFound');
 			const points = document.getElementById('points');
 			const githubAccessToken = document.getElementById('githubAccessToken');
+			const statGhosts = document.getElementById('statGhosts');
 
 			generateButton.disabled = true;
+
+			// Show/hide game-specific UI when the game selector changes
+			gameSelect.addEventListener('change', () => {
+				const isPacman = gameSelect.value === 'pacman';
+				playerStyleRow.style.display = isPacman ? '' : 'none';
+				statGhosts.style.display = isPacman ? '' : 'none';
+			});
 
 			let currentSvgBlob = null;
 
@@ -565,11 +584,11 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 			let pr = undefined;
 
 			generateButton.addEventListener('click', () => {
+				const selectedGame = gameSelect.value;
 				const config = {
 					platform: platformSelect.value,
 					username: usernameInput.value,
 					gameTheme: themeSelect.value,
-					playerStyle: playerStyle,
 					githubSettings: {
 						accessToken: githubAccessToken.value
 					}
@@ -580,20 +599,20 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 				if (pr !== undefined) {
 					pr.stop();
 				}
-				pr = new PacmanRenderer({
-					...config,
+
+				const callbacks = {
 					svgCallback: (animatedSVG) => {
 						const svgBlob = new Blob([animatedSVG], {
 							type: 'image/svg+xml;charset=utf-8'
 						});
 						const svgUrl = URL.createObjectURL(svgBlob);
 						svgHolder.src = svgUrl;
-						currentSvgBlob = svgUrl;
+						currentSvgBlob = { url: svgUrl, game: selectedGame };
 					},
 					gameStatsCallback: (stats) => {
 						points.innerText = stats.totalScore;
 						steps.innerText = stats.steps;
-						ghostsEaten.innerText = stats.ghostsEaten;
+						ghostsEaten.innerText = stats.ghostsEaten ?? 0;
 					},
 					gameOverCallback: () => {
 						console.log('Game Over');
@@ -601,15 +620,21 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 					pointsIncreasedCallback: (pointsSum) => {
 						points.innerText = pointsSum;
 					}
-				});
+				};
+
+				if (selectedGame === 'breakout') {
+					pr = new BreakoutRenderer({ ...config, ...callbacks });
+				} else {
+					pr = new PacmanRenderer({ ...config, ...callbacks, playerStyle: playerStyleSelect.value });
+				}
 				pr.start();
 			});
 
 			downloadSvgButton.addEventListener('click', () => {
 				if (currentSvgBlob) {
 					const link = document.createElement('a');
-					link.href = currentSvgBlob;
-					link.download = 'pacman-contributions.svg';
+					link.href = currentSvgBlob.url;
+					link.download = currentSvgBlob.game === 'breakout' ? 'breakout-contributions.svg' : 'pacman-contributions.svg';
 					document.body.appendChild(link);
 					link.click();
 					document.body.removeChild(link);
