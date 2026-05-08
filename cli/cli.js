@@ -4,13 +4,13 @@
 import fs from 'fs';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
-import { BreakoutRenderer, PacmanRenderer } from '../dist/pacman-contribution-graph.min.js';
+import { BreakoutRenderer, GalagaRenderer, PacmanRenderer } from '../dist/pacman-contribution-graph.min.js';
 
 const argv = yargs(hideBin(process.argv))
 	.option('game', {
 		alias: 'g',
-		describe: 'Game to generate: pacman, breakout',
-		choices: ['pacman', 'breakout'],
+		describe: 'Game to generate: pacman, breakout, galaga',
+		choices: ['pacman', 'breakout', 'galaga'],
 		default: 'pacman',
 		type: 'string'
 	})
@@ -52,5 +52,15 @@ const config = {
 	}
 };
 
-const renderer = argv.game === 'breakout' ? new BreakoutRenderer(config) : new PacmanRenderer(config);
+let renderer;
+switch (argv.game) {
+	case 'breakout':
+		renderer = new BreakoutRenderer(config);
+		break;
+	case 'galaga':
+		renderer = new GalagaRenderer(config);
+		break;
+	default:
+		renderer = new PacmanRenderer(config);
+}
 renderer.start();

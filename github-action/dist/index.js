@@ -26827,6 +26827,34 @@ module.exports = parseParams
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
@@ -26836,6 +26864,14 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
 "use strict";
+
+// NAMESPACE OBJECT: ./node_modules/.pnpm/pacman-contribution-graph@3.0.0/node_modules/pacman-contribution-graph/dist/pacman-contribution-graph.min.js
+var pacman_contribution_graph_min_namespaceObject = {};
+__nccwpck_require__.r(pacman_contribution_graph_min_namespaceObject);
+__nccwpck_require__.d(pacman_contribution_graph_min_namespaceObject, {
+  Lc: () => (Ct),
+  Cf: () => (bt)
+});
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@actions+core@1.10.1/node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(136);
@@ -26899,6 +26935,8 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 		let renderer;
 		if (game === 'breakout') {
 			renderer = new Ct(conf);
+		} else if (game === 'galaga') {
+			renderer = new pacman_contribution_graph_min_namespaceObject.GalagaRenderer(conf);
 		} else {
 			renderer = new bt(conf);
 		}
@@ -26922,7 +26960,7 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 					.filter(Boolean)
 			)
 		];
-		const validGames = ['pacman', 'breakout'];
+		const validGames = ['pacman', 'breakout', 'galaga'];
 		for (const game of games) {
 			if (!validGames.includes(game)) {
 				core.warning(`Unknown game "${game}" — skipping. Valid values: ${validGames.join(', ')}`);
@@ -26940,7 +26978,9 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 		const allStats = [];
 
 		for (const game of selectedGames) {
-			const prefix = game === 'breakout' ? 'breakout-contribution-graph' : 'pacman-contribution-graph';
+			const prefix = game === 'breakout' ? 'breakout-contribution-graph' :
+		               game === 'galaga'   ? 'galaga-contribution-graph'   :
+		                                     'pacman-contribution-graph';
 
 			const lightResult = await generateSvg(game, userName, githubToken, game === 'breakout' ? 'github' : 'github', playerStyle);
 			const lightFile = `dist/${prefix}.svg`;

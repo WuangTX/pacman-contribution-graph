@@ -613,6 +613,666 @@ const BreakoutSVG = { generateAnimatedSVG };
 
 /***/ }),
 
+/***/ "./src/galaga/core/constants.ts":
+/*!**************************************!*\
+  !*** ./src/galaga/core/constants.ts ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BULLET_IMAGE_DATA: () => (/* binding */ BULLET_IMAGE_DATA),
+/* harmony export */   BULLET_SPEED: () => (/* binding */ BULLET_SPEED),
+/* harmony export */   BULLET_SPRITE_HEIGHT_GU: () => (/* binding */ BULLET_SPRITE_HEIGHT_GU),
+/* harmony export */   CELL_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE),
+/* harmony export */   DELTA_TIME: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.DELTA_TIME),
+/* harmony export */   EXPLOSION_FRAMES: () => (/* binding */ EXPLOSION_FRAMES),
+/* harmony export */   FIRE_RATE: () => (/* binding */ FIRE_RATE),
+/* harmony export */   FRAMES_PER_TARGET_MAX: () => (/* binding */ FRAMES_PER_TARGET_MAX),
+/* harmony export */   FRAMES_PER_TARGET_MIN: () => (/* binding */ FRAMES_PER_TARGET_MIN),
+/* harmony export */   GAME_THEMES: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES),
+/* harmony export */   GAP_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE),
+/* harmony export */   GRID_HEIGHT: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT),
+/* harmony export */   GRID_WIDTH: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH),
+/* harmony export */   MAX_BULLETS: () => (/* binding */ MAX_BULLETS),
+/* harmony export */   SHIP_HALF_WIDTH: () => (/* binding */ SHIP_HALF_WIDTH),
+/* harmony export */   SHIP_IMAGE_DATA: () => (/* binding */ SHIP_IMAGE_DATA),
+/* harmony export */   SHIP_SPEED: () => (/* binding */ SHIP_SPEED),
+/* harmony export */   SHIP_Y: () => (/* binding */ SHIP_Y)
+/* harmony export */ });
+/* harmony import */ var _shared_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/constants */ "./src/shared/constants.ts");
+/* ─── Re-export shared constants so galaga code has one import location ─── */
+
+/* ───────────── Ship ───────────── */
+/** Ship center Y in grid units (just below the 7-row grid) */
+const SHIP_Y = 10.5;
+/** Ship horizontal speed in grid units per frame */
+const SHIP_SPEED = 0.4;
+/** Ship half-width in grid units (used for clamping) */
+const SHIP_HALF_WIDTH = 0.8;
+/* ───────────── Bullets ───────────── */
+/** Upward speed of a bullet in grid units per frame */
+const BULLET_SPEED = 0.6;
+/** Maximum simultaneous active bullets */
+const MAX_BULLETS = 10;
+/** Fire a new bullet every this many frames when aligned with a target */
+const FIRE_RATE = 2;
+/** Minimum frames the ship shoots at one target before moving to the next */
+const FRAMES_PER_TARGET_MIN = 4;
+/** Maximum frames the ship shoots at one target before moving to the next */
+const FRAMES_PER_TARGET_MAX = 8;
+/** Number of frames an explosion animation lasts */
+const EXPLOSION_FRAMES = 7;
+/* ─────────────── Bullet image ─────────────── */
+/** Bullet sprite height in grid units (sprite is 20px, slot is 22px) — used for leading-edge collision */
+const BULLET_SPRITE_HEIGHT_GU = 20 / 22;
+const BULLET_IMAGE_DATA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAACACAMAAACMX59YAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAByUExURQAAAP////7+/gBE/wBE/wBE/wBE/wBE/wBE/gBE/gBE/wBE/wBE/gBE/wBE/wBE/gBE/gBE/+cgMfUeJf8AAP8AAP4AAP4AAABE/wBE/hhW/y9m/y9n/yNd/4Sl/73O/7zO//8cHP4cHP8AAP4AAP///6QdcYAAAAAYdFJOUwAAAGbHk4W9hb1genq/3RYcHJPFhb2FvbKPFBsAAAABYktHRAH/Ai3eAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAB3RJTUUH6gUIFjcZmpji7QAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyNi0wNS0wOFQyMjo1NToyNSswMDowMDWlEL0AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjYtMDUtMDhUMjI6NTU6MjUrMDA6MDBE+KgBAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDI2LTA1LTA4VDIyOjU1OjI1KzAwOjAwE+2J3gAAAk5JREFUaN7tVotWwyAMnahzvp2PSXxMZ/P/3+ggECija1N2ZDvuWmm17W1y82IyyeH0LIPzyXBMdQYXR4IjwZFATDAD0NoeYE/mT30pITBfNK/ZNx2TyAX3acvjL4QE2r/HFxIXptGHmUEkIkkXx0CmwczIl6KD4OqaccPnWx8BXtc/d9GDN/Twepmc6S5A7x1z3iCgDKJfoFxI7kEI7nrdYkGfWXQZE3DW5e2HrGM5C0Anj3aoATmCyH8XAr5B/05oxRpsYGcEvQ5vJwiFxzUAkDAlBUrpndWAshg09NsCO9TgPxEIamE8wZ5rMIzg7b2FD7t+CgiWJxl8lRJ8DyFwJbdUJ0rFLysm6AsjFFowVgMYQlBswX4TtLcSYAiUD59qhzEJGGwSmF5r80CFFAgW+JZND3ZO5zINYDgBbBFRjbdAV63GLQSqjwAghJMJXB4os7bL2e9C9iWVewlUN8H9g8OcYC8fVxY/qxhPc3rOH4T8Bvq5CUC/vgh26zEBYxQBugOrWVCNYOEVwKAE1nAB2YYxBBh/HQ8uCvUJFi7+VARIVwfmAqcBhmQWWoB1XdhFGNGFcb0cZBjjrszRLLWgkgbovJB2JJfKXIljUjlSEev0RJuArIF0vC84/AYNLX/sQtRIxoRxj4qpXkfiaeIm/J+HcbEDDSiRMRoQNV3AA8yDcgJM/G+EPdE3VUpFd5INV9+JXFMykLmAfjIjmyK0wLUj5NYkJKBx0sKrWIMEchGxsgVNsQVNCYEfLGEySrd5xSK6LArjdUwtDIrCL/JGvSI+ReIgAAAAAElFTkSuQmCC';
+/* ───────────── Ship image ───────────── */
+const SHIP_IMAGE_DATA = 'data:image/png;base64,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';
+
+
+/***/ }),
+
+/***/ "./src/galaga/core/game.ts":
+/*!*********************************!*\
+  !*** ./src/galaga/core/game.ts ***!
+  \*********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   GalagaGame: () => (/* binding */ GalagaGame)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../renderers/svg */ "./src/galaga/renderers/svg.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./constants */ "./src/galaga/core/constants.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+/* ────────────────── Level helpers ────────────────── */
+const LEVEL_ORDER = ['NONE', 'FIRST_QUARTILE', 'SECOND_QUARTILE', 'THIRD_QUARTILE', 'FOURTH_QUARTILE'];
+/** Return the level one step below the given level (minimum NONE). */
+const decrementLevel = (level) => {
+    const idx = LEVEL_ORDER.indexOf(level);
+    return LEVEL_ORDER[Math.max(0, idx - 1)];
+};
+const randomFramesForTarget = () => Math.floor(Math.random() * (_constants__WEBPACK_IMPORTED_MODULE_2__.FRAMES_PER_TARGET_MAX - _constants__WEBPACK_IMPORTED_MODULE_2__.FRAMES_PER_TARGET_MIN + 1)) + _constants__WEBPACK_IMPORTED_MODULE_2__.FRAMES_PER_TARGET_MIN;
+const hasRemainingEnemies = (store) => store.grid.some((col) => col.some((cell) => cell.commitsCount > 0));
+/**
+ * Find the best column to target near the ship's current position.
+ * Searches within an expanding radius (starting at 5) around the ship,
+ * excluding `excludeCol`. Returns the highest-scoring column found.
+ */
+const findTargetColumn = (store, excludeCol = -1) => {
+    const shipCol = Math.round(store.ship.x - 0.5);
+    const scoreCol = (x) => store.grid[x].reduce((sum, cell) => {
+        var _a;
+        const weights = { NONE: 0, FIRST_QUARTILE: 1, SECOND_QUARTILE: 2, THIRD_QUARTILE: 3, FOURTH_QUARTILE: 4 };
+        return sum + ((_a = weights[cell.level]) !== null && _a !== void 0 ? _a : 0);
+    }, 0);
+    for (let radius = 3; radius <= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH; radius++) {
+        let bestCol = -1;
+        let bestScore = 0;
+        for (let offset = -radius; offset <= radius; offset++) {
+            const x = shipCol + offset;
+            if (x < 0 || x >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH)
+                continue;
+            if (x === excludeCol)
+                continue;
+            const s = scoreCol(x);
+            if (s > bestScore) {
+                bestScore = s;
+                bestCol = x;
+            }
+        }
+        if (bestCol !== -1)
+            return bestCol;
+    }
+    // Absolute fallback: first non-empty column
+    for (let x = 0; x < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH; x++) {
+        if (x !== excludeCol && store.grid[x].some((cell) => cell.commitsCount > 0))
+            return x;
+    }
+    return Math.floor(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH / 2);
+};
+const pushSnapshot = (store) => {
+    store.gameHistory.push({
+        ship: { x: store.ship.x },
+        bullets: store.bullets.map((b) => (Object.assign({}, b)))
+    });
+};
+/* ────────────────── Game lifecycle ────────────────── */
+const startGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    store.frameCount = 0;
+    store.nextBulletId = 0;
+    store.gameHistory = [];
+    store.cellEvents = [];
+    store.explosionEvents = [];
+    store.bullets = [];
+    store.grid = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.createGridFromData(store);
+    store.initialColors = store.grid.map((col) => col.map((cell) => cell.color));
+    if (!hasRemainingEnemies(store)) {
+        const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_1__.GalagaSVG.generateAnimatedSVG(store);
+        store.config.svgCallback(svg);
+        store.config.gameOverCallback();
+        return;
+    }
+    store.ship = { x: _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH / 2 };
+    store.currentTargetCol = findTargetColumn(store);
+    store.framesShootingAtTarget = 0;
+    store.framesAllowedForTarget = randomFramesForTarget();
+    const MAX_FRAMES = 3000;
+    while (hasRemainingEnemies(store) && store.frameCount < MAX_FRAMES) {
+        updateGame(store);
+    }
+    const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_1__.GalagaSVG.generateAnimatedSVG(store);
+    store.config.svgCallback(svg);
+    if (store.config.gameStatsCallback) {
+        store.config.gameStatsCallback({
+            totalScore: store.cellEvents.length,
+            steps: store.frameCount,
+            ghostsEaten: 0
+        });
+    }
+    store.config.gameOverCallback();
+});
+const stopGame = (_store) => { };
+/* ────────────────── Per-frame update ────────────────── */
+const updateGame = (store) => {
+    var _a;
+    store.frameCount++;
+    const { grid, ship } = store;
+    const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+    // ── Move bullets upward & check collisions ───────────────────────────
+    for (const bullet of store.bullets) {
+        if (!bullet.active)
+            continue;
+        bullet.y -= _constants__WEBPACK_IMPORTED_MODULE_2__.BULLET_SPEED;
+        // Off the top of the screen — deactivate
+        if (bullet.y < -1) {
+            bullet.active = false;
+            continue;
+        }
+        // Column index the bullet occupies (bullet.x = col + 0.5)
+        const col = Math.round(bullet.x - 0.5);
+        // Collision when bullet base (bottom of sprite) enters the cell's y range
+        const row = Math.floor(bullet.y);
+        if (col >= 0 && col < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH && row >= 0 && row < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT) {
+            if (grid[col][row].commitsCount > 0) {
+                const prevColor = grid[col][row].color;
+                const newLevel = decrementLevel(grid[col][row].level);
+                grid[col][row].level = newLevel;
+                grid[col][row].color = theme.intensityColors[LEVEL_ORDER.indexOf(newLevel)];
+                if (newLevel === 'NONE') {
+                    grid[col][row].commitsCount = 0;
+                    store.explosionEvents.push({
+                        frameIndex: store.gameHistory.length,
+                        x: col,
+                        y: row,
+                        color: prevColor
+                    });
+                }
+                store.cellEvents.push({
+                    frameIndex: store.gameHistory.length,
+                    x: col,
+                    y: row,
+                    color: grid[col][row].color
+                });
+                store.config.pointsIncreasedCallback(store.cellEvents.length);
+                bullet.active = false;
+            }
+        }
+    }
+    // Remove inactive bullets
+    store.bullets = store.bullets.filter((b) => b.active);
+    // ── Ship AI: move toward locked-on target column ────────────────────
+    // If current target is depleted, pick a fresh one
+    if (!((_a = grid[store.currentTargetCol]) === null || _a === void 0 ? void 0 : _a.some((cell) => cell.commitsCount > 0))) {
+        store.currentTargetCol = findTargetColumn(store);
+        store.framesShootingAtTarget = 0;
+    }
+    const targetCol = store.currentTargetCol;
+    const targetX = targetCol + 0.5;
+    const dx = targetX - ship.x;
+    if (Math.abs(dx) > _constants__WEBPACK_IMPORTED_MODULE_2__.SHIP_SPEED) {
+        ship.x += Math.sign(dx) * _constants__WEBPACK_IMPORTED_MODULE_2__.SHIP_SPEED;
+    }
+    else {
+        ship.x = targetX;
+    }
+    ship.x = Math.max(_constants__WEBPACK_IMPORTED_MODULE_2__.SHIP_HALF_WIDTH, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - _constants__WEBPACK_IMPORTED_MODULE_2__.SHIP_HALF_WIDTH, ship.x));
+    // ── Fire: shoot for FRAMES_PER_TARGET frames then switch target ───────
+    const aligned = Math.abs(ship.x - targetX) < 0.5;
+    const columnHasEnemies = grid[targetCol].some((cell) => cell.commitsCount > 0);
+    if (aligned && columnHasEnemies) {
+        if (store.framesShootingAtTarget >= store.framesAllowedForTarget) {
+            // Done with this target — pick next column (excluding current)
+            store.currentTargetCol = findTargetColumn(store, targetCol);
+            store.framesShootingAtTarget = 0;
+            store.framesAllowedForTarget = randomFramesForTarget();
+        }
+        else {
+            if (store.frameCount % _constants__WEBPACK_IMPORTED_MODULE_2__.FIRE_RATE === 0 && store.bullets.length < _constants__WEBPACK_IMPORTED_MODULE_2__.MAX_BULLETS) {
+                store.bullets.push({
+                    id: store.nextBulletId++,
+                    x: targetX,
+                    y: _constants__WEBPACK_IMPORTED_MODULE_2__.SHIP_Y - 1.0,
+                    active: true
+                });
+            }
+            store.framesShootingAtTarget++;
+        }
+    }
+    pushSnapshot(store);
+};
+const GalagaGame = { startGame, stopGame };
+
+
+/***/ }),
+
+/***/ "./src/galaga/core/store.ts":
+/*!**********************************!*\
+  !*** ./src/galaga/core/store.ts ***!
+  \**********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   GalagaStore: () => (/* binding */ GalagaStore)
+/* harmony export */ });
+const GalagaStore = {
+    frameCount: 0,
+    nextBulletId: 0,
+    contributions: [],
+    ship: { x: 0 },
+    bullets: [],
+    grid: [],
+    monthLabels: [],
+    gameHistory: [],
+    initialColors: [],
+    cellEvents: [],
+    explosionEvents: [],
+    currentTargetCol: -1,
+    framesShootingAtTarget: 0,
+    framesAllowedForTarget: 4,
+    config: undefined
+};
+
+
+/***/ }),
+
+/***/ "./src/galaga/index.ts":
+/*!*****************************!*\
+  !*** ./src/galaga/index.ts ***!
+  \*****************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   GalagaRenderer: () => (/* binding */ GalagaRenderer)
+/* harmony export */ });
+/* harmony import */ var _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../shared/providers/providers */ "./src/shared/providers/providers.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./core/game */ "./src/galaga/core/game.ts");
+/* harmony import */ var _core_store__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./core/store */ "./src/galaga/core/store.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+class GalagaRenderer {
+    constructor(conf) {
+        this.conf = Object.assign({}, conf);
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const defaultConfig = {
+                platform: 'github',
+                username: '',
+                svgCallback: (_) => { },
+                gameOverCallback: () => { },
+                gameTheme: 'github',
+                pointsIncreasedCallback: (_) => { },
+                githubSettings: { accessToken: '' }
+            };
+            this.store = JSON.parse(JSON.stringify(_core_store__WEBPACK_IMPORTED_MODULE_3__.GalagaStore));
+            this.store.config = Object.assign(Object.assign({}, defaultConfig), this.conf);
+            switch (this.store.config.platform) {
+                case 'gitlab':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGitlabContributions(this.store);
+                    break;
+                case 'github':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGithubContributions(this.store);
+                    break;
+                default:
+                    throw new Error(`Unsupported platform: ${this.store.config.platform}`);
+            }
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildGrid(this.store);
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildMonthLabels(this.store);
+            yield _core_game__WEBPACK_IMPORTED_MODULE_2__.GalagaGame.startGame(this.store);
+            return this.store;
+        });
+    }
+    stop() {
+        _core_game__WEBPACK_IMPORTED_MODULE_2__.GalagaGame.stopGame(this.store);
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/galaga/renderers/svg.ts":
+/*!*************************************!*\
+  !*** ./src/galaga/renderers/svg.ts ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   GalagaSVG: () => (/* binding */ GalagaSVG)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../core/constants */ "./src/galaga/core/constants.ts");
+
+
+const SVG_PRECISION = 4;
+/** Convert a grid-unit x coordinate to SVG pixels */
+const toSvgX = (gx) => gx * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+/** Convert a grid-unit y coordinate to SVG pixels (offset by month-label area) */
+const toSvgY = (gy) => gy * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + 15;
+/**
+ * Extract individual bullet trajectories from the game history.
+ * Bullets are matched across frames by their unique `id`.
+ */
+const extractBulletFlights = (store) => {
+    const flights = [];
+    const active = new Map();
+    for (let f = 0; f < store.gameHistory.length; f++) {
+        const bullets = store.gameHistory[f].bullets.filter((b) => b.active);
+        const currentIds = new Set(bullets.map((b) => b.id));
+        // Bullets no longer present → close their flights
+        for (const [id, flight] of active) {
+            if (!currentIds.has(id)) {
+                flights.push({
+                    id,
+                    x: flight.x,
+                    startFrame: flight.startFrame,
+                    endFrame: f - 1,
+                    yPositions: flight.yPositions
+                });
+                active.delete(id);
+            }
+        }
+        // New bullets → open flights
+        for (const bullet of bullets) {
+            if (!active.has(bullet.id)) {
+                active.set(bullet.id, { x: bullet.x, startFrame: f, yPositions: [bullet.y] });
+            }
+            else {
+                active.get(bullet.id).yPositions.push(bullet.y);
+            }
+        }
+    }
+    // Flush any flights still open at end
+    for (const [id, flight] of active) {
+        flights.push({
+            id,
+            x: flight.x,
+            startFrame: flight.startFrame,
+            endFrame: store.gameHistory.length - 1,
+            yPositions: flight.yPositions
+        });
+    }
+    return flights;
+};
+/* ────────────────── Main SVG generator ────────────────── */
+const generateAnimatedSVG = (store) => {
+    const svgWidth = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+    const shipAreaHeight = 90;
+    const svgHeight = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + 15 + shipAreaHeight;
+    const totalFrames = store.gameHistory.length;
+    const totalDurationMs = Math.max((totalFrames * _core_constants__WEBPACK_IMPORTED_MODULE_1__.DELTA_TIME) / 2, 1000);
+    const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+    const shipSvgY = toSvgY(_core_constants__WEBPACK_IMPORTED_MODULE_1__.SHIP_Y);
+    let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
+    svg += `<desc>Generated with galaga-contribution-graph on ${new Date()}</desc>`;
+    svg += `<rect width="100%" height="100%" fill="#000000"/>`;
+    // ── Galaxy starfield ──────────────────────────────────────────────────
+    {
+        let starSeed = 12345;
+        const starRng = () => {
+            starSeed = (starSeed * 1664525 + 1013904223) >>> 0;
+            return starSeed / 0xffffffff;
+        };
+        for (let i = 0; i < 120; i++) {
+            const scx = (starRng() * svgWidth).toFixed(1);
+            const sr = (0.4 + starRng() * 1.6).toFixed(1);
+            const sop = (0.3 + starRng() * 0.7).toFixed(2);
+            const spd = Math.floor(2500 + starRng() * 5500);
+            const sph = Math.floor(starRng() * spd);
+            svg += `<circle cx="${scx}" cy="0" r="${sr}" fill="white" opacity="${sop}"><animate attributeName="cy" from="-2" to="${svgHeight + 2}" dur="${spd}ms" begin="-${sph}ms" repeatCount="indefinite"/></circle>`;
+        }
+    }
+    // ── Month labels ─────────────────────────────────────────────────────
+    let lastMonth = '';
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        if (store.monthLabels[x] !== lastMonth) {
+            const xPos = x * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+            svg += `<text x="${xPos}" y="10" text-anchor="middle" font-size="10" fill="#aaaaaa">${store.monthLabels[x]}</text>`;
+            lastMonth = store.monthLabels[x];
+        }
+    }
+    // ── Grid cells (enemy formation) ─────────────────────────────────────
+    const noneColor = theme.intensityColors[0];
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        for (let y = 0; y < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT; y++) {
+            const cellX = toSvgX(x);
+            const cellY = toSvgY(y);
+            const colorAnim = getCellAnimationData(store, x, y);
+            const cellValues = colorAnim.values
+                .split(';')
+                .map((c) => (c === noneColor ? 'transparent' : c))
+                .join(';');
+            svg += `<rect x="${cellX}" y="${cellY}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}" rx="3" fill="transparent">
+				<animate attributeName="fill" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+					values="${cellValues}" keyTimes="${colorAnim.keyTimes}"/>
+			</rect>`;
+        }
+    }
+    // ── Bullets ───────────────────────────────────────────────────────────
+    if (totalFrames >= 2) {
+        const flights = extractBulletFlights(store);
+        for (const flight of flights) {
+            const svgX = toSvgX(flight.x);
+            const tStart = Number((flight.startFrame / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            const tEndNext = Number((Math.min(flight.endFrame + 1, totalFrames - 1) / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            // Build opacity keyTimes/values (discrete: 0 outside flight, 1 inside)
+            let opKeyTimes, opValues;
+            if (tStart <= 0 && tEndNext >= 1) {
+                opKeyTimes = '0;1';
+                opValues = '1;1';
+            }
+            else if (tStart <= 0) {
+                opKeyTimes = `0;${tEndNext};${tEndNext};1`;
+                opValues = `1;1;0;0`;
+            }
+            else if (tEndNext >= 1) {
+                opKeyTimes = `0;${tStart};${tStart};1`;
+                opValues = `0;0;1;1`;
+            }
+            else {
+                opKeyTimes = `0;${tStart};${tStart};${tEndNext};${tEndNext};1`;
+                opValues = `0;0;1;1;0;0`;
+            }
+            // Build position keyTimes/values (compact, only records changes)
+            const posKeyTimes = [];
+            const posValues = [];
+            const firstSvgY = toSvgY(flight.yPositions[0]).toFixed(1);
+            const lastSvgY = toSvgY(flight.yPositions[flight.yPositions.length - 1]).toFixed(1);
+            if (flight.startFrame > 0) {
+                posKeyTimes.push(0);
+                posValues.push(`${svgX.toFixed(1)},${firstSvgY}`);
+            }
+            for (let i = 0; i < flight.yPositions.length; i++) {
+                const frameIdx = flight.startFrame + i;
+                const t = Number((frameIdx / (totalFrames - 1)).toFixed(SVG_PRECISION));
+                const svgY = toSvgY(flight.yPositions[i]).toFixed(1);
+                if (posKeyTimes.length === 0 || t !== posKeyTimes[posKeyTimes.length - 1]) {
+                    posKeyTimes.push(t);
+                    posValues.push(`${svgX.toFixed(1)},${svgY}`);
+                }
+            }
+            if (posKeyTimes[posKeyTimes.length - 1] !== 1) {
+                posKeyTimes.push(1);
+                posValues.push(`${svgX.toFixed(1)},${lastSvgY}`);
+            }
+            // Bullet image: 16x20px, centered on bullet x, top at y=0
+            svg += `<image x="-5" y="-13" width="10" height="13" href="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BULLET_IMAGE_DATA}" opacity="0" preserveAspectRatio="xMidYMid meet">
+				<animate attributeName="opacity" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+					keyTimes="${opKeyTimes}" values="${opValues}"/>
+				<animateTransform attributeName="transform" type="translate" calcMode="linear"
+					dur="${totalDurationMs}ms" repeatCount="indefinite"
+					keyTimes="${posKeyTimes.join(';')}" values="${posValues.join(';')}"/>
+			</image>`;
+        }
+    }
+    // ── Explosions ────────────────────────────────────────────────────────
+    if (totalFrames >= 2) {
+        for (const exp of store.explosionEvents) {
+            const cx = (toSvgX(exp.x) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2).toFixed(1);
+            const cy = (toSvgY(exp.y) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2).toFixed(1);
+            const tS = Number((exp.frameIndex / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            const tE = Number((Math.min(exp.frameIndex + _core_constants__WEBPACK_IMPORTED_MODULE_1__.EXPLOSION_FRAMES, totalFrames - 1) / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            if (tE <= tS)
+                continue;
+            // keyTimes with a duplicate at tS so opacity jumps in (no pre-fade)
+            const kt = `0;${tS};${tS};${tE};1`;
+            const opVals = `0;0;1;0;0`;
+            const dur = `${totalDurationMs}ms`;
+            // Expanding ring
+            svg += `<circle cx="${cx}" cy="${cy}" r="2" fill="none" stroke="${exp.color}" stroke-width="3" opacity="0">
+				<animate attributeName="r"            calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="2;2;2;${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE};${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}"/>
+				<animate attributeName="stroke-width" calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="3;3;3;0;0"/>
+				<animate attributeName="opacity"      calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="${opVals}"/>
+			</circle>`;
+            // 4 sparks flying outward
+            const sparks = [
+                { dx: 0, dy: -11 },
+                { dx: 0, dy: 11 },
+                { dx: -11, dy: 0 },
+                { dx: 11, dy: 0 }
+            ];
+            for (const { dx, dy } of sparks) {
+                const tx = (Number(cx) + dx).toFixed(1);
+                const ty = (Number(cy) + dy).toFixed(1);
+                svg += `<circle cx="${cx}" cy="${cy}" r="2.5" fill="${exp.color}" opacity="0">
+					<animate attributeName="cx"      calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="${cx};${cx};${cx};${tx};${tx}"/>
+					<animate attributeName="cy"      calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="${cy};${cy};${cy};${ty};${ty}"/>
+					<animate attributeName="r"       calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="2.5;2.5;2.5;0;0"/>
+					<animate attributeName="opacity" calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="${opVals}"/>
+				</circle>`;
+            }
+        }
+    }
+    // ── Ship ──────────────────────────────────────────────────────────────
+    const shipPositions = store.gameHistory.map((f) => {
+        const sx = toSvgX(f.ship.x);
+        return `${sx.toFixed(1)},${shipSvgY.toFixed(1)}`;
+    });
+    const shipAnim = buildChangingValuesAnimation(store, shipPositions);
+    svg += `<image x="-16" y="-35" width="32" height="35" href="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.SHIP_IMAGE_DATA}" preserveAspectRatio="xMidYMid meet">
+		<animateTransform attributeName="transform" type="translate" calcMode="linear"
+			dur="${totalDurationMs}ms" repeatCount="indefinite"
+			keyTimes="${shipAnim.keyTimes}"
+			values="${shipAnim.values}"/>
+	</image>`;
+    svg += '</svg>';
+    return svg;
+};
+/* ────────────────── Animation helpers ────────────────── */
+const getCellAnimationData = (store, x, y) => {
+    var _a, _b;
+    const totalFrames = store.gameHistory.length;
+    const initialColor = (_b = (_a = store.initialColors[x]) === null || _a === void 0 ? void 0 : _a[y]) !== null && _b !== void 0 ? _b : '#ebedf0';
+    const events = store.cellEvents.filter((e) => e.x === x && e.y === y);
+    if (events.length === 0) {
+        return { keyTimes: '0;1', values: `${initialColor};${initialColor}` };
+    }
+    const kTimes = [0];
+    const kValues = [initialColor];
+    for (const ev of events) {
+        const t = Number((ev.frameIndex / Math.max(totalFrames - 1, 1)).toFixed(SVG_PRECISION));
+        if (t !== kTimes[kTimes.length - 1]) {
+            kTimes.push(t);
+            kValues.push(ev.color);
+        }
+        else {
+            kValues[kValues.length - 1] = ev.color;
+        }
+    }
+    if (kTimes[kTimes.length - 1] !== 1) {
+        kTimes.push(1);
+        kValues.push(kValues[kValues.length - 1]);
+    }
+    return { keyTimes: kTimes.join(';'), values: kValues.join(';') };
+};
+const buildChangingValuesAnimation = (store, values) => {
+    var _a, _b, _c, _d;
+    const totalFrames = store.gameHistory.length;
+    if (totalFrames === 0) {
+        const v = (_a = values[0]) !== null && _a !== void 0 ? _a : '0,0';
+        return { keyTimes: '0;1', values: `${v};${v}` };
+    }
+    const keyTimes = [];
+    const keyValues = [];
+    let lastValue = null;
+    let lastIndex = null;
+    values.forEach((curr, idx) => {
+        if (curr !== lastValue) {
+            if (lastValue !== null && lastIndex !== null && idx - 1 !== lastIndex) {
+                keyTimes.push(Number(((idx - 1) / (totalFrames - 1)).toFixed(SVG_PRECISION)));
+                keyValues.push(lastValue);
+            }
+            keyTimes.push(Number((idx / (totalFrames - 1)).toFixed(SVG_PRECISION)));
+            keyValues.push(curr);
+            lastValue = curr;
+            lastIndex = idx;
+        }
+    });
+    if (keyTimes.length === 0 || keyTimes[keyTimes.length - 1] !== 1) {
+        if (keyTimes.length === 0) {
+            keyTimes.push(0, 1);
+            keyValues.push((_b = values[0]) !== null && _b !== void 0 ? _b : '0,0', (_c = values[values.length - 1]) !== null && _c !== void 0 ? _c : '0,0');
+        }
+        else {
+            keyTimes.push(1);
+            keyValues.push((_d = lastValue !== null && lastValue !== void 0 ? lastValue : values[values.length - 1]) !== null && _d !== void 0 ? _d : '0,0');
+        }
+    }
+    return { keyTimes: keyTimes.join(';'), values: keyValues.join(';') };
+};
+const GalagaSVG = { generateAnimatedSVG };
+
+
+/***/ }),
+
 /***/ "./src/pacman/core/constants.ts":
 /*!**************************************!*\
   !*** ./src/pacman/core/constants.ts ***!
@@ -2972,19 +3632,23 @@ var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   BreakoutRenderer: () => (/* reexport safe */ _breakout_index__WEBPACK_IMPORTED_MODULE_0__.BreakoutRenderer),
-/* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_1__.PacmanRenderer),
-/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle)
+/* harmony export */   GalagaRenderer: () => (/* reexport safe */ _galaga_index__WEBPACK_IMPORTED_MODULE_1__.GalagaRenderer),
+/* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_2__.PacmanRenderer),
+/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_2__.PlayerStyle)
 /* harmony export */ });
 /* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./breakout/index */ "./src/breakout/index.ts");
-/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
+/* harmony import */ var _galaga_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./galaga/index */ "./src/galaga/index.ts");
+/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
+
 
 
 
 })();
 
 var __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
+var __webpack_exports__GalagaRenderer = __webpack_exports__.GalagaRenderer;
 var __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
 var __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
-export { __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle };
+export { __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle };
 
 //# sourceMappingURL=pacman-contribution-graph.js.map

@@ -169,6 +169,7 @@
 							<select id="game" class="form-select">
 								<option value="pacman">👻 Pac-Man</option>
 								<option value="breakout">🧱 Breakout</option>
+								<option value="galaga">🚀 Galaga</option>
 							</select>
 						</div>
 					</div>
@@ -359,10 +360,8 @@ jobs:
 		uses: abozanona/pacman-contribution-graph@main
 		with:
 			github_user_name: ${{ github.repository_owner }}
-			# Comma-separated list of games: pacman, breakout (default: pacman)
-			games: 'pacman,breakout'
-
-		# push the generated SVGs to the output branch
+						# Comma-separated list of games: pacman, breakout, galaga (default: pacman)
+						games: 'pacman,breakout,galaga'
 		- name: push SVGs to the output branch
 		uses: crazy-max/ghaction-github-pages@v3.1.0
 		with:
@@ -494,7 +493,10 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 pacman-contribution-graph --game pacman --platform github --username your_username --gameTheme github --output pacman-contribution-graph.svg
 
 # Breakout
-pacman-contribution-graph --game breakout --platform github --username your_username --gameTheme github --output breakout-contribution-graph.svg</code></pre>
+pacman-contribution-graph --game breakout --platform github --username your_username --gameTheme github --output breakout-contribution-graph.svg
+
+# Galaga
+pacman-contribution-graph --game galaga --platform github --username your_username --gameTheme github --output galaga-contribution-graph.svg</code></pre>
 				</li>
 			</ol>
 
@@ -513,7 +515,7 @@ pacman-contribution-graph --game breakout --platform github --username your_user
 
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 		<script type="module">
-			import { PacmanRenderer, BreakoutRenderer } from './dist/pacman-contribution-graph.js';
+			import { PacmanRenderer, BreakoutRenderer, GalagaRenderer } from './dist/pacman-contribution-graph.js';
 
 			const generateButton = document.getElementById('generate');
 			const usernameInput = document.getElementById('username');
@@ -650,6 +652,8 @@ pacman-contribution-graph --game breakout --platform github --username your_user
 
 				if (selectedGame === 'breakout') {
 					pr = new BreakoutRenderer({ ...config, ...callbacks });
+				} else if (selectedGame === 'galaga') {
+					pr = new GalagaRenderer({ ...config, ...callbacks });
 				} else {
 					pr = new PacmanRenderer({ ...config, ...callbacks, playerStyle: playerStyleSelect.value });
 				}
@@ -660,7 +664,9 @@ pacman-contribution-graph --game breakout --platform github --username your_user
 				if (currentSvgBlob) {
 					const link = document.createElement('a');
 					link.href = currentSvgBlob.url;
-					link.download = currentSvgBlob.game === 'breakout' ? 'breakout-contributions.svg' : 'pacman-contributions.svg';
+					link.download = currentSvgBlob.game === 'breakout' ? 'breakout-contributions.svg' :
+				                currentSvgBlob.game === 'galaga'   ? 'galaga-contributions.svg'   :
+				                                                    'pacman-contributions.svg';
 					document.body.appendChild(link);
 					link.click();
 					document.body.removeChild(link);

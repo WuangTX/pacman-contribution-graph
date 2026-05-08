@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
-import { BreakoutRenderer, PacmanRenderer } from 'pacman-contribution-graph';
+import { BreakoutRenderer, GalagaRenderer, PacmanRenderer } from 'pacman-contribution-graph';
 import * as path from 'path';
 
 const STATS_ENDPOINT = 'https://elec.abozanona.me/receive_stats.php';
@@ -51,6 +51,8 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 		let renderer;
 		if (game === 'breakout') {
 			renderer = new BreakoutRenderer(conf);
+		} else if (game === 'galaga') {
+			renderer = new GalagaRenderer(conf);
 		} else {
 			renderer = new PacmanRenderer(conf);
 		}
@@ -74,7 +76,7 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 					.filter(Boolean)
 			)
 		];
-		const validGames = ['pacman', 'breakout'];
+		const validGames = ['pacman', 'breakout', 'galaga'];
 		for (const game of games) {
 			if (!validGames.includes(game)) {
 				core.warning(`Unknown game "${game}" — skipping. Valid values: ${validGames.join(', ')}`);
@@ -92,7 +94,17 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 		const allStats = [];
 
 		for (const game of selectedGames) {
-			const prefix = game === 'breakout' ? 'breakout-contribution-graph' : 'pacman-contribution-graph';
+			let prefix;
+			switch (game) {
+				case 'breakout':
+					prefix = 'breakout-contribution-graph';
+					break;
+				case 'galaga':
+					prefix = 'galaga-contribution-graph';
+					break;
+				default:
+					prefix = 'pacman-contribution-graph';
+			}
 
 			const lightResult = await generateSvg(game, userName, githubToken, game === 'breakout' ? 'github' : 'github', playerStyle);
 			const lightFile = `dist/${prefix}.svg`;
