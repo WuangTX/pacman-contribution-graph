@@ -11,10 +11,10 @@ Transform your GitHub or GitLab contribution graph into arcade games! This JavaS
 
 ## 🕹️ Available Games
 
-| Game            | Description                                             | Source                                  |
-| --------------- | ------------------------------------------------------- | --------------------------------------- |
-| 👻 **Pac-Man**  | Pac-Man eats your contributions while ghosts give chase | [src/pacman/](src/pacman/README.md)     |
-| 🧱 **Breakout** | A ball bounces around breaking your contribution bricks | [src/breakout/](src/breakout/README.md) |
+| Game            | Description                                             |
+| --------------- | ------------------------------------------------------- |
+| 👻 **Pac-Man**  | Pac-Man eats your contributions while ghosts give chase |
+| 🧱 **Breakout** | A ball bounces around breaking your contribution bricks |
 
 More games coming soon!
 
