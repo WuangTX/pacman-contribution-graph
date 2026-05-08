@@ -4,9 +4,16 @@
 import fs from 'fs';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
-import { PacmanRenderer } from '../dist/pacman-contribution-graph.min.js';
+import { BreakoutRenderer, PacmanRenderer } from '../dist/pacman-contribution-graph.min.js';
 
 const argv = yargs(hideBin(process.argv))
+	.option('game', {
+		alias: 'g',
+		describe: 'Game to generate: pacman, breakout',
+		choices: ['pacman', 'breakout'],
+		default: 'pacman',
+		type: 'string'
+	})
 	.option('platform', {
 		alias: 'pl',
 		describe: 'Platform: github, gitlab',
@@ -30,12 +37,12 @@ const argv = yargs(hideBin(process.argv))
 	.option('output', {
 		alias: 'o',
 		describe: 'Output file (SVG)',
-		default: 'pacman-contribution-graph.svg',
+		default: 'contribution-graph.svg',
 		type: 'string'
 	})
 	.help().argv;
 
-const pr = new PacmanRenderer({
+const config = {
 	platform: argv.platform,
 	username: argv.username,
 	gameTheme: argv.gameTheme,
@@ -43,6 +50,7 @@ const pr = new PacmanRenderer({
 		fs.writeFileSync(argv.output, svg);
 		console.log(`SVG saved to ${argv.output}`);
 	}
-});
+};
 
-pr.start();
+const renderer = argv.game === 'breakout' ? new BreakoutRenderer(config) : new PacmanRenderer(config);
+renderer.start();

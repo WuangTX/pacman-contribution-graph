@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
-import { PacmanRenderer } from 'pacman-contribution-graph';
+import { BreakoutRenderer, PacmanRenderer } from 'pacman-contribution-graph';
 import * as path from 'path';
 
 const STATS_ENDPOINT = 'https://elec.abozanona.me/receive_stats.php';
@@ -24,7 +24,7 @@ const reportStats = async (username, platform, stats) => {
 	}
 };
 
-const generateSvg = async (userName, githubToken, theme, playerStyle) => {
+const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 	return new Promise((resolve, reject) => {
 		let generatedSvg = '';
 		let gameStats = null;
@@ -44,42 +44,77 @@ const generateSvg = async (userName, githubToken, theme, playerStyle) => {
 			},
 			gameOverCallback: () => {
 				resolve({ svg: generatedSvg, stats: gameStats });
-			}
+			},
+			pointsIncreasedCallback: () => {}
 		};
 
-		const renderer = new PacmanRenderer(conf);
-		renderer.start();
+		let renderer;
+		if (game === 'breakout') {
+			renderer = new BreakoutRenderer(conf);
+		} else {
+			renderer = new PacmanRenderer(conf);
+		}
+		renderer.start().catch(reject);
 	});
 };
 
 (async () => {
 	try {
-		let svgContent = '';
 		const userName = core.getInput('github_user_name');
 		const githubToken = core.getInput('github_token');
-		const playerStyle = core.getInput('player_style') || 'oportunista';
-		// TODO: Check active users
-		fetch('https://elec.abozanona.me/github-action-analytics.php?username=' + userName);
+		const playerStyle = core.getInput('player_style') || 'opportunistic';
+		const gamesInput = core.getInput('games') || 'pacman';
 
-		const lightResult = await generateSvg(userName, githubToken, 'github', playerStyle);
-		svgContent = lightResult.svg;
-		console.log(`💾 writing to dist/pacman-contribution-graph.svg`);
-		fs.mkdirSync(path.dirname('dist/pacman-contribution-graph.svg'), { recursive: true });
-		fs.writeFileSync('dist/pacman-contribution-graph.svg', svgContent);
+		// Parse comma-separated games list, trim whitespace, deduplicate
+		const games = [
+			...new Set(
+				gamesInput
+					.split(',')
+					.map((g) => g.trim().toLowerCase())
+					.filter(Boolean)
+			)
+		];
+		const validGames = ['pacman', 'breakout'];
+		for (const game of games) {
+			if (!validGames.includes(game)) {
+				core.warning(`Unknown game "${game}" — skipping. Valid values: ${validGames.join(', ')}`);
+			}
+		}
+		const selectedGames = games.filter((g) => validGames.includes(g));
+		if (selectedGames.length === 0) {
+			core.setFailed(`No valid games specified. Valid values: ${validGames.join(', ')}`);
+			return;
+		}
 
-		const darkResult = await generateSvg(userName, githubToken, 'github-dark', playerStyle);
-		svgContent = darkResult.svg;
-		console.log(`💾 writing to dist/pacman-contribution-graph-dark.svg`);
-		fs.mkdirSync(path.dirname('dist/pacman-contribution-graph-dark.svg'), { recursive: true });
-		fs.writeFileSync('dist/pacman-contribution-graph-dark.svg', svgContent);
+		// Track analytics (best-effort)
+		fetch('https://elec.abozanona.me/github-action-analytics.php?username=' + userName).catch(() => {});
 
-		// Pick the best stats across both runs
-		const allStats = [lightResult.stats, darkResult.stats].filter(Boolean);
+		const allStats = [];
+
+		for (const game of selectedGames) {
+			const prefix = game === 'breakout' ? 'breakout-contribution-graph' : 'pacman-contribution-graph';
+
+			const lightResult = await generateSvg(game, userName, githubToken, game === 'breakout' ? 'github' : 'github', playerStyle);
+			const lightFile = `dist/${prefix}.svg`;
+			console.log(`💾 writing to ${lightFile}`);
+			fs.mkdirSync(path.dirname(lightFile), { recursive: true });
+			fs.writeFileSync(lightFile, lightResult.svg);
+
+			const darkResult = await generateSvg(game, userName, githubToken, 'github-dark', playerStyle);
+			const darkFile = `dist/${prefix}-dark.svg`;
+			console.log(`💾 writing to ${darkFile}`);
+			fs.mkdirSync(path.dirname(darkFile), { recursive: true });
+			fs.writeFileSync(darkFile, darkResult.svg);
+
+			if (lightResult.stats) allStats.push(lightResult.stats);
+			if (darkResult.stats) allStats.push(darkResult.stats);
+		}
+
 		if (allStats.length > 0) {
 			const bestStats = {
 				totalScore: Math.max(...allStats.map((s) => s.totalScore)),
 				steps: Math.min(...allStats.map((s) => s.steps)),
-				ghostsEaten: Math.max(...allStats.map((s) => s.ghostsEaten))
+				ghostsEaten: Math.max(...allStats.map((s) => s.ghostsEaten ?? 0))
 			};
 			await reportStats(userName, 'github', bestStats);
 		}

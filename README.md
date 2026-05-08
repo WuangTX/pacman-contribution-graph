@@ -26,6 +26,14 @@ More games coming soon!
   <img alt="pacman contribution graph" src="https://raw.githubusercontent.com/abozanona/abozanona/output/pacman-contribution-graph.svg">
 </picture>
 
+### Breakout preview
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/breakout-contribution-graph-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/breakout-contribution-graph.svg">
+  <img alt="breakout contribution graph" src="https://raw.githubusercontent.com/abozanona/abozanona/output/breakout-contribution-graph.svg">
+</picture>
+
 ## 🎮 Features
 
 Elevate your GitHub profile with the Pac-Man Contribution Graph Game and add a playful touch to your coding journey!
@@ -135,7 +143,7 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
     - Add a `main.yml` file with the following content:
 
         ```yaml
-        name: generate pacman game
+        name: generate arcade contribution graphs
 
         on:
             schedule: # Run automatically every 24 hours
@@ -150,16 +158,20 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
                 permissions:
                     contents: write
                 runs-on: ubuntu-latest
-                timeout-minutes: 5
+                timeout-minutes: 10
 
                 steps:
-                    - name: generate pacman-contribution-graph.svg
+                    - name: generate contribution graph SVGs
                       uses: abozanona/pacman-contribution-graph@main
                       with:
                           github_user_name: ${{ github.repository_owner }}
+                          # Comma-separated list of games to generate.
+                          # Valid values: pacman, breakout
+                          # Default: pacman
+                          games: 'pacman,breakout'
 
-                    # Push the generated SVG to the output branch
-                    - name: push pacman-contribution-graph.svg to the output branch
+                    # Push the generated SVGs to the output branch
+                    - name: push SVGs to the output branch
                       uses: crazy-max/ghaction-github-pages@v3.1.0
                       with:
                           target_branch: output
@@ -175,10 +187,18 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
         ```markdown
         ## My Contribution Graph
 
+        <!-- Pac-Man -->
         <picture>
             <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph-dark.svg">
             <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph.svg">
             <img alt="pacman contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph.svg">
+        </picture>
+
+        <!-- Breakout -->
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
+            <img alt="breakout contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
         </picture>
         ```
 
@@ -215,20 +235,24 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
         variables:
             GIT_SUBMODULE_STRATEGY: recursive
 
-        generate_pacman_graph:
+        generate_graphs:
             stage: generate
             image: node:20
             script:
                 - mkdir -p dist
                 - npm install -g pacman-contribution-graph
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab --output pacman-contribution-graph-light.svg
-                - mv pacman-contribution-graph-light.svg dist/pacman-contribution-graph-light.svg
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab-dark --output pacman-contribution-graph-dark.svg
-                - mv pacman-contribution-graph-dark.svg dist/pacman-contribution-graph-dark.svg
+                # Pac-Man
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game pacman --gameTheme gitlab --output dist/pacman-contribution-graph.svg
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game pacman --gameTheme gitlab-dark --output dist/pacman-contribution-graph-dark.svg
+                # Breakout
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game breakout --gameTheme gitlab --output dist/breakout-contribution-graph.svg
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game breakout --gameTheme gitlab-dark --output dist/breakout-contribution-graph-dark.svg
             artifacts:
                 paths:
-                    - dist/pacman-contribution-graph-light.svg
+                    - dist/pacman-contribution-graph.svg
                     - dist/pacman-contribution-graph-dark.svg
+                    - dist/breakout-contribution-graph.svg
+                    - dist/breakout-contribution-graph-dark.svg
                 expire_in: 1 hour
             rules:
                 - if: '$CI_PIPELINE_SOURCE == "schedule"'
@@ -240,13 +264,12 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
             script:
                 - apk add --no-cache git
                 - mkdir -p output
-                - cp dist/pacman-contribution-graph-light.svg output/
-                - cp dist/pacman-contribution-graph-dark.svg output/
+                - cp dist/*.svg output/
                 - git remote set-url origin https://gitlab-ci-token:${CI_PUSH_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git
-                - git config --global user.email "pacman-bot@example.com"
-                - git config --global user.name "Pacman Bot"
-                - git add output/pacman-contribution-graph-light.svg output/pacman-contribution-graph-dark.svg
-                - git commit -m "Update Pac-Man contribution graph [ci skip]" || echo "No changes"
+                - git config --global user.email "arcade-bot@example.com"
+                - git config --global user.name "Arcade Bot"
+                - git add output/*.svg
+                - git commit -m "Update arcade contribution graphs [ci skip]" || echo "No changes"
                 - git push origin HEAD:main
             rules:
                 - if: '$CI_PIPELINE_SOURCE == "schedule"'
@@ -260,10 +283,18 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
         ```markdown
         ## My Contribution Graph
 
+        <!-- Pac-Man -->
         <picture>
             <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph-light.svg">
-            <img alt="pacman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph-light.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph.svg">
+            <img alt="pacman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph.svg">
+        </picture>
+
+        <!-- Breakout -->
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph.svg">
+            <img alt="breakout contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph.svg">
         </picture>
         ```
 
