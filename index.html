@@ -26,7 +26,6 @@
 				padding: 2rem;
 				margin-bottom: 2rem;
 			}
-			#canvas,
 			#svgholder {
 				max-width: 100%;
 				height: auto;
@@ -176,10 +175,12 @@
 					</div>
 					<div class="col-md-6">
 						<div class="mb-3">
-							<label for="output" class="form-label">Output format</label>
-							<select id="output" class="form-select">
-								<option value="canvas">Canvas</option>
-								<option value="svg">SVG</option>
+							<label for="theme" class="form-label">Theme:</label>
+							<select id="theme" class="form-select">
+								<option value="github">GitHub</option>
+								<option value="github-dark">GitHub Dark</option>
+								<option value="gitlab">GitLab</option>
+								<option value="gitlab-dark">GitLab Dark</option>
 							</select>
 						</div>
 					</div>
@@ -201,41 +202,12 @@
 							<div id="userNotFound" class="text-danger" style="display: none">User not found</div>
 						</div>
 					</div>
-					<div class="col-md-6">
-						<div class="mb-3">
-							<label for="theme" class="form-label">Theme:</label>
-							<select id="theme" class="form-select">
-								<option value="github">GitHub</option>
-								<option value="github-dark">GitHub Dark</option>
-								<option value="gitlab">GitLab</option>
-								<option value="gitlab-dark">GitLab Dark</option>
-							</select>
-						</div>
-					</div>
 				</div>
 				<div class="mb-5">
 					<button class="btn btn-secondary mb-1" data-bs-toggle="collapse" data-bs-target="#additionalSettings">
 						Toggle Additional Settings
 					</button>
 					<div id="additionalSettings" class="collapse">
-						<div class="row">
-							<div class="col-md-6">
-								<div class="mb-3">
-									<label for="enableSounds" class="form-label">Sounds:</label>
-									<select id="enableSounds" class="form-select">
-										<option value="disabled">Disabled</option>
-										<option value="enabled">Enabled</option>
-									</select>
-								</div>
-							</div>
-							<div class="col-md-6">
-								<div class="mb-3">
-									<label for="gameSpeed" class="form-label">Game Speed:</label>
-									<input type="range" class="form-range" id="gameSpeed" min="1" max="10" value="1" />
-									<span id="gameSpeedValue">1</span>
-								</div>
-							</div>
-						</div>
 						<div class="row">
 							<div class="col-md-6">
 								<div class="mb-3">
@@ -269,7 +241,6 @@
 
 			<div class="section">
 				<h2>Game Output</h2>
-				<canvas id="canvas"></canvas>
 				<div id="svgContainer" style="display: none">
 					<img id="svgholder" />
 					<br />
@@ -297,16 +268,6 @@
 							<td><code>github</code>, <code>gitlab</code></td>
 						</tr>
 						<tr>
-							<td><code>outputFormat</code></td>
-							<td>The format of the game output</td>
-							<td><code>canvas</code>, <code>svg</code></td>
-						</tr>
-						<tr>
-							<td><code>canvas</code></td>
-							<td>The canvas element in DOM to render Pacman game into</td>
-							<td><code>typeof HTMLCanvasElement</code></td>
-						</tr>
-						<tr>
 							<td><code>svgCallback</code></td>
 							<td>A callback function that will get called when SVG picture is generated</td>
 							<td><code>(animatedSVG: string) => void</code></td>
@@ -322,11 +283,6 @@
 							<td>Any valid GitHub or GitLab username</td>
 						</tr>
 						<tr>
-							<td><code>gameSpeed</code></td>
-							<td>The speed of the Pac-Man character in the game</td>
-							<td>1 (fastest) to 10 (slowest)</td>
-						</tr>
-						<tr>
 							<td><code>gameTheme</code></td>
 							<td>The visual theme of the game</td>
 							<td><code>github</code>, <code>github-dark</code>, <code>gitlab</code>, <code>gitlab-dark</code></td>
@@ -335,11 +291,6 @@
 							<td><code>playerStyle</code></td>
 							<td>Pacman movement style</td>
 							<td><code>conservative</code>, <code>aggressive</code>, <code>opportunistic</code></td>
-						</tr>
-						<tr>
-							<td><code>enableSounds</code></td>
-							<td>Enable or disable game sounds(only in canvas mode)</td>
-							<td><code>true</code>, <code>false</code></td>
 						</tr>
 					</tbody>
 				</table>
@@ -355,8 +306,6 @@ import { PacmanRenderer } from 'pacman-contribution-graph';
 const pr = new PacmanRenderer({
     platform: 'github',
     username: 'yourusername',
-    canvas: document.getElementById('canvas'),
-    outputFormat: 'canvas',
     gameTheme: 'github'
 });
 pr.start();
@@ -368,24 +317,12 @@ import { PacmanRenderer } from 'https://cdn.jsdelivr.net/npm/pacman-contribution
 const pr = new PacmanRenderer({
     platform: 'github',
     username: 'yourusername',
-    canvas: document.getElementById('canvas'),
-    outputFormat: 'canvas',
     gameTheme: 'github'
 });
 pr.start();
 &lt;/script&gt;</code></pre>
 
-				<h3>Method 3: Iframe/Image Embedding</h3>
-				<pre><code>
-&lt;!-- For canvas --&gt;
-<code>&lt;iframe src="https://abozanona.github.io/pacman-contribution-graph/embeded/canvas.html?username=yourusername&platform=github" 
-    width="800" height="600" frameborder="0"&gt;&lt;/iframe&gt;</code>
-&lt;!-- For SVG --&gt;
-<code>&lt;img src="https://pacman.abozanona.me?username=yourusername" /&gt;</code>
-</code></pre>
-			</div>
-
-			<h3>Method 4: Github Actions</h3>
+			<h3>Method 3: Github Actions</h3>
 			<ol>
 				<li>Create a new repository with the same name as your github username</li>
 				<li>
@@ -434,7 +371,7 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 <li>That's it! You can also check my github repo <a target="__blank" href="https://github.com/abozanona/abozanona">@abozanona</a> for an example </li>
 			</ol>
 
-			<h3>Method 5: Gitlab Pipeline</h3>
+			<h3>Method 4: Gitlab Pipeline</h3>
 			<ol>
 				<li>Create a new repository with the same name as your gitlab username</li>
 				<li>
@@ -519,7 +456,7 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 </li>
 <li>That's it! You can also check my gitlab repo <a target="__blank" href="https://gitlab.com/abozanona/abozanona">@abozanona</a> for an example </li>
 			</ol>
-			<h3>Method 6: Using cli</h3>
+			<h3>Method 5: Using cli</h3>
 			<ol>
 				<li>Run <code>npm install -g pacman-contribution-graph</code></li>
 				<li>Run <code>pacman-contribution-graph --platform gitlab --username username --gameTheme github --output output.svg</code></li>
@@ -546,12 +483,8 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 			const usernameInput = document.getElementById('username');
 			const platformSelect = document.getElementById('platform');
 			const outputSelect = document.getElementById('output');
-			const gameSpeedInput = document.getElementById('gameSpeed');
-			const gameSpeedValue = document.getElementById('gameSpeedValue');
 			const themeSelect = document.getElementById('theme');
-			const enableSoundsSelect = document.getElementById('enableSounds');
 			const playerStyleSelect = document.getElementById('playerStyle');
-			const canvas = document.getElementById('canvas');
 			const svgContainer = document.getElementById('svgContainer');
 			const svgHolder = document.getElementById('svgholder');
 			const downloadSvgButton = document.getElementById('downloadSvg');
@@ -563,10 +496,6 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 			generateButton.disabled = true;
 
 			let currentSvgBlob = null;
-
-			gameSpeedInput.addEventListener('input', () => {
-				gameSpeedValue.textContent = gameSpeedInput.value;
-			});
 
 			usernameInput.addEventListener('input', debounce(checkUser, 500));
 			platformSelect.addEventListener('input', debounce(checkUser, 500));
@@ -639,70 +568,41 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 				const config = {
 					platform: platformSelect.value,
 					username: usernameInput.value,
-					outputFormat: outputSelect.value,
-					gameSpeed: parseInt(gameSpeedInput.value),
 					gameTheme: themeSelect.value,
-					enableSounds: enableSounds.value === 'enabled',
 					playerStyle: playerStyle,
 					githubSettings: {
 						accessToken: githubAccessToken.value
 					}
 				};
 
-				if (config.outputFormat === 'canvas') {
-					canvas.style.display = 'block';
-					svgContainer.style.display = 'none';
-					downloadSvgButton.style.display = 'none';
-					if (pr !== undefined) {
-						pr.stop();
-					}
-					pr = new PacmanRenderer({
-						...config,
-						canvas: canvas,
-						gameStatsCallback: (stats) => {
-							points.innerText = stats.totalScore;
-							steps.innerText = stats.steps;
-							ghostsEaten.innerText = stats.ghostsEaten;
-						},
-						gameOverCallback: () => {
-							console.log('Game Over');
-						},
-						pointsIncreasedCallback: (pointsSum) => {
-							points.innerText = pointsSum;
-						}
-					});
-					pr.start();
-				} else {
-					canvas.style.display = 'none';
-					svgContainer.style.display = 'block';
-					downloadSvgButton.style.display = 'inline-block';
-					if (pr !== undefined) {
-						pr.stop();
-					}
-					pr = new PacmanRenderer({
-						...config,
-						svgCallback: (animatedSVG) => {
-							const svgBlob = new Blob([animatedSVG], {
-								type: 'image/svg+xml;charset=utf-8'
-							});
-							const svgUrl = URL.createObjectURL(svgBlob);
-							svgHolder.src = svgUrl;
-							currentSvgBlob = svgUrl;
-						},
-						gameStatsCallback: (stats) => {
-							points.innerText = stats.totalScore;
-							steps.innerText = stats.steps;
-							ghostsEaten.innerText = stats.ghostsEaten;
-						},
-						gameOverCallback: () => {
-							console.log('Game Over');
-						},
-						pointsIncreasedCallback: (pointsSum) => {
-							points.innerText = pointsSum;
-						}
-					});
-					pr.start();
+				svgContainer.style.display = 'block';
+				downloadSvgButton.style.display = 'inline-block';
+				if (pr !== undefined) {
+					pr.stop();
 				}
+				pr = new PacmanRenderer({
+					...config,
+					svgCallback: (animatedSVG) => {
+						const svgBlob = new Blob([animatedSVG], {
+							type: 'image/svg+xml;charset=utf-8'
+						});
+						const svgUrl = URL.createObjectURL(svgBlob);
+						svgHolder.src = svgUrl;
+						currentSvgBlob = svgUrl;
+					},
+					gameStatsCallback: (stats) => {
+						points.innerText = stats.totalScore;
+						steps.innerText = stats.steps;
+						ghostsEaten.innerText = stats.ghostsEaten;
+					},
+					gameOverCallback: () => {
+						console.log('Game Over');
+					},
+					pointsIncreasedCallback: (pointsSum) => {
+						points.innerText = pointsSum;
+					}
+				});
+				pr.start();
 			});
 
 			downloadSvgButton.addEventListener('click', () => {

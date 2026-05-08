@@ -158,11 +158,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _movement_ghosts_movement__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../movement/ghosts-movement */ "./src/movement/ghosts-movement.ts");
 /* harmony import */ var _movement_pacman_movement__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../movement/pacman-movement */ "./src/movement/pacman-movement.ts");
-/* harmony import */ var _music_player__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../music-player */ "./src/music-player.ts");
-/* harmony import */ var _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../renderers/canvas */ "./src/renderers/canvas.ts");
-/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../renderers/svg */ "./src/renderers/svg.ts");
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
-/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./constants */ "./src/core/constants.ts");
+/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../renderers/svg */ "./src/renderers/svg.ts");
+/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./constants */ "./src/core/constants.ts");
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -172,8 +170,6 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-
-
 
 
 
@@ -265,42 +261,21 @@ const stopGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     clearInterval(store.gameInterval);
 });
 const startGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
-    if (store.config.outputFormat == 'canvas') {
-        store.config.canvas = store.config.canvas;
-        _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.resizeCanvas(store);
-        _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.listenToSoundController(store);
-    }
     store.frameCount = 0;
     store.aliveSteps = 0;
     store.gameHistory = []; // keeps clean
     store.ghosts.forEach((g) => (g.scared = false));
-    store.grid = _utils_utils__WEBPACK_IMPORTED_MODULE_5__.Utils.createGridFromData(store);
+    store.grid = _utils_utils__WEBPACK_IMPORTED_MODULE_3__.Utils.createGridFromData(store);
     const remainingCells = () => store.grid.some((row) => row.some((cell) => cell.commitsCount > 0));
     if (remainingCells()) {
         placePacman(store);
         placeGhosts(store);
     }
-    if (store.config.outputFormat == 'canvas')
-        _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.drawGrid(store);
-    if (store.config.outputFormat == 'canvas') {
-        if (!store.config.enableSounds) {
-            _music_player__WEBPACK_IMPORTED_MODULE_2__.MusicPlayer.getInstance().mute();
-        }
-        yield _music_player__WEBPACK_IMPORTED_MODULE_2__.MusicPlayer.getInstance().preloadSounds();
-        _music_player__WEBPACK_IMPORTED_MODULE_2__.MusicPlayer.getInstance().startDefaultSound();
-        yield _music_player__WEBPACK_IMPORTED_MODULE_2__.MusicPlayer.getInstance().play(_music_player__WEBPACK_IMPORTED_MODULE_2__.Sound.BEGINNING);
-    }
-    if (store.config.outputFormat === 'svg') {
-        while (remainingCells()) {
-            yield updateGame(store);
-        }
-        // snapshot final
+    while (remainingCells()) {
         yield updateGame(store);
     }
-    else {
-        clearInterval(store.gameInterval);
-        store.gameInterval = setInterval(() => updateGame(store), _constants__WEBPACK_IMPORTED_MODULE_6__.DELTA_TIME * store.config.gameSpeed);
-    }
+    // snapshot final
+    yield updateGame(store);
 });
 /* ---------- utilities ---------- */
 const resetPacman = (store) => {
@@ -317,11 +292,6 @@ const determineGhostName = (index) => {
 const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     store.frameCount++;
-    /* ---- FRAME-SKIP restored ---- */
-    if (store.frameCount % store.config.gameSpeed !== 0) {
-        pushSnapshot(store);
-        return;
-    }
     /* -------- pacman timers -------- */
     if (store.pacman.deadRemainingDuration > 0) {
         store.pacman.deadRemainingDuration--;
@@ -361,16 +331,8 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     /* -------- end of game -------- */
     const remaining = store.grid.some((row) => row.some((c) => c.commitsCount > 0));
     if (!remaining) {
-        if (store.config.outputFormat === 'svg') {
-            const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_4__.SVG.generateAnimatedSVG(store);
-            store.config.svgCallback(svg);
-        }
-        if (store.config.outputFormat == 'canvas') {
-            _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.renderGameOver(store);
-            _music_player__WEBPACK_IMPORTED_MODULE_2__.MusicPlayer.getInstance()
-                .play(_music_player__WEBPACK_IMPORTED_MODULE_2__.Sound.BEGINNING)
-                .then(() => _music_player__WEBPACK_IMPORTED_MODULE_2__.MusicPlayer.getInstance().stopDefaultSound());
-        }
+        const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_2__.SVG.generateAnimatedSVG(store);
+        store.config.svgCallback(svg);
         if (store.config.gameStatsCallback) {
             store.config.gameStatsCallback({
                 totalScore: store.pacman.totalPoints,
@@ -411,14 +373,6 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
     }
     /* ---- single snapshot per frame ---- */
     pushSnapshot(store);
-    if (store.config.outputFormat == 'canvas')
-        _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.drawGrid(store);
-    if (store.config.outputFormat == 'canvas')
-        _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.drawPacman(store);
-    if (store.config.outputFormat == 'canvas')
-        _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.drawGhosts(store);
-    if (store.config.outputFormat == 'canvas')
-        _renderers_canvas__WEBPACK_IMPORTED_MODULE_3__.Canvas.drawSoundController(store);
 });
 /* ---------- snapshot helper ---------- */
 const pushSnapshot = (store) => {
@@ -450,7 +404,7 @@ const checkCollisions = (store) => {
                 store.pacman.points = 0;
                 store.pacman.powerupRemainingDuration = 0;
                 if (store.pacman.deadRemainingDuration === 0) {
-                    store.pacman.deadRemainingDuration = _constants__WEBPACK_IMPORTED_MODULE_6__.PACMAN_DEATH_DURATION;
+                    store.pacman.deadRemainingDuration = _constants__WEBPACK_IMPORTED_MODULE_4__.PACMAN_DEATH_DURATION;
                 }
             }
         }
@@ -1396,139 +1350,6 @@ const PacmanMovement = {
 
 /***/ }),
 
-/***/ "./src/music-player.ts":
-/*!*****************************!*\
-  !*** ./src/music-player.ts ***!
-  \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   MusicPlayer: () => (/* binding */ MusicPlayer),
-/* harmony export */   Sound: () => (/* binding */ Sound)
-/* harmony export */ });
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var Sound;
-(function (Sound) {
-    Sound["DEFAULT"] = "https://cdn.jsdelivr.net/npm/pacman-contribution-graph/src/assets/sounds/pacman_chomp.wav";
-    Sound["BEGINNING"] = "https://cdn.jsdelivr.net/npm/pacman-contribution-graph/src/assets/sounds/pacman_beginning.wav";
-    Sound["GAME_OVER"] = "https://cdn.jsdelivr.net/npm/pacman-contribution-graph/src/assets/sounds/pacman_death.wav";
-    Sound["EAT_GHOST"] = "https://cdn.jsdelivr.net/npm/pacman-contribution-graph/src/assets/sounds/pacman_eatghost.wav";
-})(Sound || (Sound = {}));
-class MusicPlayer {
-    constructor() {
-        this.sounds = new Map();
-        this.currentSource = null;
-        this.defaultSource = null;
-        this.isMuted = false;
-        this.audioContext = new AudioContext();
-    }
-    static getInstance() {
-        if (!MusicPlayer.instance) {
-            MusicPlayer.instance = new MusicPlayer();
-        }
-        return MusicPlayer.instance;
-    }
-    preloadSounds() {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (const sound of Object.values(Sound)) {
-                const response = yield fetch(sound);
-                const arrayBuffer = yield response.arrayBuffer();
-                const audioBuffer = yield this.audioContext.decodeAudioData(arrayBuffer);
-                this.sounds.set(sound, audioBuffer);
-            }
-        });
-    }
-    play(sound) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.isMuted) {
-                return;
-            }
-            if (this.currentSource) {
-                try {
-                    this.currentSource.stop();
-                }
-                catch (ex) { }
-            }
-            const buffer = this.sounds.get(sound);
-            if (!buffer) {
-                console.error(`Sound ${sound} not found`);
-                return;
-            }
-            this.currentSource = this.audioContext.createBufferSource();
-            this.currentSource.buffer = buffer;
-            this.currentSource.connect(this.audioContext.destination);
-            if (!this.isMuted) {
-                this.currentSource.start();
-            }
-            return new Promise((resolve) => {
-                this.currentSource.onended = () => {
-                    this.currentSource = null;
-                    resolve();
-                };
-            });
-        });
-    }
-    startDefaultSound() {
-        if (this.defaultSource) {
-            try {
-                this.defaultSource.stop();
-            }
-            catch (ex) { }
-        }
-        const buffer = this.sounds.get(Sound.DEFAULT);
-        if (!buffer) {
-            console.error('Default sound not found');
-            return;
-        }
-        this.defaultSource = this.audioContext.createBufferSource();
-        this.defaultSource.buffer = buffer;
-        this.defaultSource.loop = true;
-        this.defaultSource.connect(this.audioContext.destination);
-        if (!this.isMuted) {
-            this.defaultSource.start();
-        }
-    }
-    stopDefaultSound() {
-        if (this.defaultSource) {
-            try {
-                this.defaultSource.stop();
-            }
-            catch (ex) { }
-            this.defaultSource = null;
-        }
-    }
-    mute() {
-        this.isMuted = true;
-        if (this.currentSource) {
-            this.currentSource.disconnect();
-        }
-        if (this.defaultSource) {
-            this.defaultSource.disconnect();
-        }
-    }
-    unmute() {
-        this.isMuted = false;
-        if (this.currentSource) {
-            this.currentSource.connect(this.audioContext.destination);
-        }
-        if (this.defaultSource) {
-            this.defaultSource.connect(this.audioContext.destination);
-        }
-    }
-}
-
-
-/***/ }),
-
 /***/ "./src/providers/github-contributions.ts":
 /*!***********************************************!*\
   !*** ./src/providers/github-contributions.ts ***!
@@ -1722,216 +1543,6 @@ __webpack_require__.r(__webpack_exports__);
 const Providers = {
     fetchGithubContributions: _github_contributions__WEBPACK_IMPORTED_MODULE_0__.fetchGithubContributions,
     fetchGitlabContributions: _gitlab_contributions__WEBPACK_IMPORTED_MODULE_1__.fetchGitlabContributions
-};
-
-
-/***/ }),
-
-/***/ "./src/renderers/canvas.ts":
-/*!*********************************!*\
-  !*** ./src/renderers/canvas.ts ***!
-  \*********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   Canvas: () => (/* binding */ Canvas)
-/* harmony export */ });
-/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/core/constants.ts");
-/* harmony import */ var _music_player__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../music-player */ "./src/music-player.ts");
-/* harmony import */ var _utils_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../utils/utils */ "./src/utils/utils.ts");
-/* harmony import */ var _renderer_units__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./renderer-units */ "./src/renderers/renderer-units.ts");
-
-
-
-
-const resizeCanvas = (store) => {
-    const canvasWidth = _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE);
-    const canvasHeight = _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + 20; // Adding some space for months on top
-    store.config.canvas.width = canvasWidth;
-    store.config.canvas.height = canvasHeight;
-};
-const drawGrid = (store) => {
-    const ctx = store.config.canvas.getContext('2d');
-    ctx.fillStyle = _utils_utils__WEBPACK_IMPORTED_MODULE_2__.Utils.getCurrentTheme(store).gridBackground;
-    ctx.fillRect(0, 0, store.config.canvas.width, store.config.canvas.height);
-    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH; x++) {
-        for (let y = 0; y < _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT; y++) {
-            if (store.grid[x][y].level !== 'NONE') {
-                const color = store.grid[x][y].color;
-                ctx.fillStyle = color;
-            }
-            else {
-                ctx.fillStyle = _utils_utils__WEBPACK_IMPORTED_MODULE_2__.Utils.getCurrentTheme(store).intensityColors[0];
-            }
-            ctx.beginPath();
-            store.config.canvas
-                .getContext('2d')
-                .roundRect(x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE), y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + 15, _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE, _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE, 5);
-            ctx.fill();
-        }
-    }
-    ctx.fillStyle = _utils_utils__WEBPACK_IMPORTED_MODULE_2__.Utils.getCurrentTheme(store).wallColor;
-    for (let x = 0; x <= _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH; x++) {
-        for (let y = 0; y <= _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT; y++) {
-            // Draw horizontal walls
-            if (_core_constants__WEBPACK_IMPORTED_MODULE_0__.WALLS.horizontal[x][y].active) {
-                ctx.fillRect(x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE, y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE + 15, _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE, _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE);
-                // TODO: For drawing lines labels only
-                // ctx.fillStyle = '#000';
-                // ctx.fillText(WALLS.horizontal[x][y].id, x * (GAP_SIZE + CELL_SIZE), y * (GAP_SIZE + CELL_SIZE));
-            }
-            // Draw vertical walls
-            if (_core_constants__WEBPACK_IMPORTED_MODULE_0__.WALLS.vertical[x][y].active) {
-                ctx.fillRect(x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE, y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) - _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE + 15, _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE, _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE);
-                // TODO: For drawing lines labels only
-                // ctx.fillStyle = '#000';
-                // ctx.fillText(WALLS.vertical[x][y].id, x * (GAP_SIZE + CELL_SIZE), (y + 1) * (GAP_SIZE + CELL_SIZE));
-            }
-        }
-    }
-    ctx.fillStyle = _utils_utils__WEBPACK_IMPORTED_MODULE_2__.Utils.getCurrentTheme(store).textColor;
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'center';
-    let lastMonth = '';
-    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH; x++) {
-        if (store.monthLabels[x] !== lastMonth) {
-            const xPos = x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
-            ctx.fillText(store.monthLabels[x], xPos, 10);
-            lastMonth = store.monthLabels[x];
-        }
-    }
-};
-const drawPacman = (store) => {
-    const ctx = store.config.canvas.getContext('2d');
-    const x = store.pacman.x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
-    const y = store.pacman.y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2 + 15;
-    const radius = _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
-    // Change Pac-Man's color to red if he's on power-up, dead, else yellow
-    ctx.fillStyle = _renderer_units__WEBPACK_IMPORTED_MODULE_3__.RendererUnits.generatePacManColors(store.pacman);
-    const mouthAngle = store.pacmanMouthOpen ? 0.35 * Math.PI : 0.1 * Math.PI;
-    let startAngle, endAngle;
-    switch (store.pacman.direction) {
-        case 'up':
-            startAngle = 1.5 * Math.PI + mouthAngle;
-            endAngle = 1.5 * Math.PI - mouthAngle;
-            break;
-        case 'down':
-            startAngle = 0.5 * Math.PI + mouthAngle;
-            endAngle = 0.5 * Math.PI - mouthAngle;
-            break;
-        case 'left':
-            startAngle = Math.PI + mouthAngle;
-            endAngle = Math.PI - mouthAngle;
-            break;
-        case 'right':
-        default:
-            startAngle = 0 + mouthAngle;
-            endAngle = 2 * Math.PI - mouthAngle;
-            break;
-    }
-    ctx.beginPath();
-    ctx.arc(x, y, radius, startAngle, endAngle);
-    ctx.lineTo(x, y);
-    ctx.fill();
-};
-const preloadedImages = {};
-const getLoadedImage = (key, imgDate) => {
-    if (!preloadedImages[key]) {
-        const image = new Image();
-        image.src = imgDate;
-        preloadedImages[key] = image;
-    }
-    return preloadedImages[key];
-};
-const drawGhosts = (store) => {
-    store.ghosts.forEach((ghost) => {
-        const x = ghost.x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE);
-        const y = ghost.y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + 15;
-        const size = _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE;
-        const ctx = store.config.canvas.getContext('2d');
-        if (ghost.scared) {
-            if ("imgDate" in _core_constants__WEBPACK_IMPORTED_MODULE_0__.GHOSTS.scared) {
-                ctx.drawImage(getLoadedImage('scared', _core_constants__WEBPACK_IMPORTED_MODULE_0__.GHOSTS.scared.imgDate), x, y, size, size);
-            }
-        }
-        else {
-            const ghostData = _core_constants__WEBPACK_IMPORTED_MODULE_0__.GHOSTS[ghost.name];
-            const direction = ghost.direction;
-            const imgSrc = ghostData[direction];
-            ctx.drawImage(getLoadedImage(ghost.name + '-' + ghost.direction, imgSrc), x, y, size, size);
-        }
-    });
-};
-const renderGameOver = (store) => {
-    const ctx = store.config.canvas.getContext('2d');
-    ctx.fillStyle = _utils_utils__WEBPACK_IMPORTED_MODULE_2__.Utils.getCurrentTheme(store).textColor;
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Game Over', store.config.canvas.width / 2, store.config.canvas.height / 2);
-};
-const drawSoundController = (store) => {
-    if (!store.config.enableSounds) {
-        return;
-    }
-    const ctx = store.config.canvas.getContext('2d');
-    const width = 30, height = 30, left = store.config.canvas.width - width - 10, top = 10;
-    ctx.fillStyle = `rgba(0, 0, 0, ${_music_player__WEBPACK_IMPORTED_MODULE_1__.MusicPlayer.getInstance().isMuted ? 0.3 : 0.5})`;
-    ctx.beginPath();
-    ctx.moveTo(left + 10, top + 10);
-    ctx.lineTo(left + 20, top + 5);
-    ctx.lineTo(left + 20, top + 25);
-    ctx.lineTo(left + 10, top + 20);
-    ctx.closePath();
-    ctx.fill();
-    if (!_music_player__WEBPACK_IMPORTED_MODULE_1__.MusicPlayer.getInstance().isMuted) {
-        ctx.strokeStyle = `rgba(0, 0, 0, 0.4)`;
-        ctx.lineWidth = 2;
-        // First wave
-        ctx.beginPath();
-        ctx.arc(left + 25, top + 15, 5, 0, Math.PI * 2);
-        ctx.stroke();
-        // Second wave
-        ctx.beginPath();
-        ctx.arc(left + 25, top + 15, 8, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-    else {
-        // Mute line
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(left + 25, top + 5);
-        ctx.lineTo(left + 5, top + 25);
-        ctx.stroke();
-    }
-};
-const listenToSoundController = (store) => {
-    if (!store.config.enableSounds) {
-        return;
-    }
-    store.config.canvas.addEventListener('click', function (event) {
-        const rect = store.config.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left, y = event.clientY - rect.top;
-        const width = 30, height = 30, left = store.config.canvas.width - width - 10, top = 10;
-        if (x >= left && x <= left + this.width && y >= top && y <= top + this.height) {
-            if (_music_player__WEBPACK_IMPORTED_MODULE_1__.MusicPlayer.getInstance().isMuted) {
-                _music_player__WEBPACK_IMPORTED_MODULE_1__.MusicPlayer.getInstance().unmute();
-            }
-            else {
-                _music_player__WEBPACK_IMPORTED_MODULE_1__.MusicPlayer.getInstance().mute();
-            }
-        }
-    });
-};
-const Canvas = {
-    resizeCanvas,
-    drawGrid,
-    drawPacman,
-    drawGhosts,
-    renderGameOver,
-    drawSoundController,
-    listenToSoundController
 };
 
 
@@ -2707,13 +2318,9 @@ class PacmanRenderer {
             const defaultConfig = {
                 platform: 'github',
                 username: '',
-                canvas: undefined,
-                outputFormat: 'svg',
                 svgCallback: (_) => { },
                 gameOverCallback: () => { },
                 gameTheme: 'github',
-                gameSpeed: 1,
-                enableSounds: false,
                 pointsIncreasedCallback: (_) => { },
                 githubSettings: { accessToken: '' },
                 playerStyle: _types__WEBPACK_IMPORTED_MODULE_3__.PlayerStyle.OPPORTUNISTIC

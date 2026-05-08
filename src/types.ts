@@ -85,13 +85,9 @@ export interface StoreType {
 export interface Config {
 	platform: 'github' | 'gitlab';
 	username: string;
-	canvas: HTMLCanvasElement;
-	outputFormat: 'canvas' | 'svg';
 	svgCallback: (blobUrl: string) => void;
 	gameOverCallback: () => void;
 	gameTheme: ThemeKeys;
-	gameSpeed: number;
-	enableSounds: boolean;
 	pointsIncreasedCallback: (pointsSum: number) => void;
 	gameStatsCallback?: (stats: GameStats) => void;
 	githubSettings?: {

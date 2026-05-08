@@ -17,13 +17,9 @@ export class PacmanRenderer {
 		const defaultConfig: Config = {
 			platform: 'github',
 			username: '',
-			canvas: undefined as unknown as HTMLCanvasElement,
-			outputFormat: 'svg',
 			svgCallback: (_: string) => {},
 			gameOverCallback: () => {},
 			gameTheme: 'github',
-			gameSpeed: 1,
-			enableSounds: false,
 			pointsIncreasedCallback: (_: number) => {},
 			githubSettings: { accessToken: '' },
 			playerStyle: PlayerStyle.OPPORTUNISTIC

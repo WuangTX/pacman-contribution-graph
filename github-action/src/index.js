@@ -31,8 +31,6 @@ const generateSvg = async (userName, githubToken, theme, playerStyle) => {
 		const conf = {
 			platform: 'github',
 			username: userName,
-			outputFormat: 'svg',
-			gameSpeed: 1,
 			gameTheme: theme,
 			playerStyle,
 			githubSettings: {

@@ -22,7 +22,7 @@ Elevate your GitHub profile with the Pac-Man Contribution Graph Game and add a p
 - **Contribution Visualization**: Converts your GitHub or GitLab contribution data into a colorful grid.
 - **Pac-Man Gameplay**: Classic Pac-Man mechanics where commits are edible dots
 - **Multiple Themes**: Choose between different themes, such as GitHub Dark and GitLab Dark.
-- **Customizable Settings**: Adjust game speed, sound preferences, and output format (Canvas or SVG).
+- **Customizable Settings**: Adjust game settings.
 - **GitHub Integration**: Automatically fetches your contribution data via GraphQL API
 - **GitHub Action**: Easy to add to your profile or website README
 
@@ -60,9 +60,7 @@ Here's how to set up and run the Pac-Man Contribution Graph:
     	username: 'your_username',
     	platform: 'github', // or 'gitlab'
     	theme: 'github-dark', // or 'gitlab-dark'
-    	speed: 2,
-    	sound: true,
-    	output: 'canvas' // or 'svg'
+    	speed: 2
     });
     ```
 
@@ -71,20 +69,16 @@ Here's how to set up and run the Pac-Man Contribution Graph:
     - `platform`: Specify `'github'` or `'gitlab'`.
     - `theme`: Choose between available themes.
     - `speed`: Set the game speed (e.g., `1` for normal, `2` for fast).
-    - `sound`: Enable or disable sound (`true` or `false`).
-    - `output`: Select `'canvas'` for browser play or `'svg'` for a downloadable animated SVG.
 
 ## Integrate into Your GitHub Profile
 
 To showcase the Pac-Man game on your GitHub profile, follow these steps:
 
 1. **Create a Special Repository**:
-
     - Name a new repository exactly as your GitHub username (e.g., `username/username`).
     - This repository powers your GitHub profile page.
 
 2. **Set Up GitHub Actions**:
-
     - In the repository, create a `.github/workflows/` directory.
     - Add a `main.yml` file with the following content:
 
@@ -92,38 +86,37 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
         name: generate pacman game
 
         on:
-          schedule: # Run automatically every 24 hours
-            - cron: "0 0 * * *"
-          workflow_dispatch: # Allows manual triggering
-          push: # Runs on every push to the main branch
-            branches:
-              - main
+            schedule: # Run automatically every 24 hours
+                - cron: '0 0 * * *'
+            workflow_dispatch: # Allows manual triggering
+            push: # Runs on every push to the main branch
+                branches:
+                    - main
 
         jobs:
-          generate:
-            permissions:
-              contents: write
-            runs-on: ubuntu-latest
-            timeout-minutes: 5
+            generate:
+                permissions:
+                    contents: write
+                runs-on: ubuntu-latest
+                timeout-minutes: 5
 
-            steps:
-              - name: generate pacman-contribution-graph.svg
-                uses: abozanona/pacman-contribution-graph@main
-                with:
-                  github_user_name: ${{ github.repository_owner }}
+                steps:
+                    - name: generate pacman-contribution-graph.svg
+                      uses: abozanona/pacman-contribution-graph@main
+                      with:
+                          github_user_name: ${{ github.repository_owner }}
 
-              # Push the generated SVG to the output branch
-              - name: push pacman-contribution-graph.svg to the output branch
-                uses: crazy-max/ghaction-github-pages@v3.1.0
-                with:
-                  target_branch: output
-                  build_dir: dist
-                env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                    # Push the generated SVG to the output branch
+                    - name: push pacman-contribution-graph.svg to the output branch
+                      uses: crazy-max/ghaction-github-pages@v3.1.0
+                      with:
+                          target_branch: output
+                          build_dir: dist
+                      env:
+                          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         ```
 
 3. **Add to Profile README**:
-
     - In your repository, create or edit the `README.md` file to include:
 
         ```markdown
@@ -146,19 +139,16 @@ For a detailed guide, refer to the blog post: [Integrate Pac-Man Contribution Gr
 To showcase the Pac-Man game on your GitLab profile, follow these steps:
 
 1. **Create a Special Repository**:
-
     - Name a new repository exactly as your GitLab username (e.g., `username/username`).
     - This repository powers your GitLab profile page.
 
 2. **Generate & Setup Push Token**:
-
     - Open the repository, and from left sidebar navigate to settings => Access Token tab.
     - Generate a new Access Token with the name `CI/CD Push Token` & scope `write_repository`. Access tokens are only valid for 1 year maximum.
     - From left sidebar navigate to settings => CI/CD.
     - In Variables section, add a new variable with the name `CI_PUSH_TOKEN` and the value of the Access Token. Make sure that the variable is `Masked` & `Protect`.
 
 3. **Set Up `gitlab-ci` File**:
-
     - In the repository, create a `.gitlab-ci.yml` file with the following content.
 
         ```yaml
@@ -208,7 +198,6 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
         ```
 
 4. **Add to Profile README**:
-
     - In your repository, create or edit the `README.md` file to include:
 
         ```markdown
@@ -222,7 +211,6 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
         ```
 
 5. **Commit and Push**:
-
     - Push the changes to GitHub. The Gitlab pipeline will work once, updating the Pac-Man game on your profile.
 
 6. **Schedule pipeline running**

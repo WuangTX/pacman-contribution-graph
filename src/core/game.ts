@@ -1,11 +1,9 @@
 import { GhostsMovement } from '../movement/ghosts-movement';
 import { PacmanMovement } from '../movement/pacman-movement';
-import { MusicPlayer, Sound } from '../music-player';
-import { Canvas } from '../renderers/canvas';
 import { SVG } from '../renderers/svg';
 import { GhostName, StoreType } from '../types';
 import { Utils } from '../utils/utils';
-import { DELTA_TIME, PACMAN_DEATH_DURATION } from './constants';
+import { PACMAN_DEATH_DURATION } from './constants';
 
 /* ---------- positioning helpers ---------- */
 
@@ -97,12 +95,6 @@ const stopGame = async (store: StoreType) => {
 };
 
 const startGame = async (store: StoreType) => {
-	if (store.config.outputFormat == 'canvas') {
-		store.config.canvas = store.config.canvas;
-		Canvas.resizeCanvas(store);
-		Canvas.listenToSoundController(store);
-	}
-
 	store.frameCount = 0;
 	store.aliveSteps = 0;
 	store.gameHistory = []; // keeps clean
@@ -117,27 +109,11 @@ const startGame = async (store: StoreType) => {
 		placeGhosts(store);
 	}
 
-	if (store.config.outputFormat == 'canvas') Canvas.drawGrid(store);
-
-	if (store.config.outputFormat == 'canvas') {
-		if (!store.config.enableSounds) {
-			MusicPlayer.getInstance().mute();
-		}
-		await MusicPlayer.getInstance().preloadSounds();
-		MusicPlayer.getInstance().startDefaultSound();
-		await MusicPlayer.getInstance().play(Sound.BEGINNING);
-	}
-
-	if (store.config.outputFormat === 'svg') {
-		while (remainingCells()) {
-			await updateGame(store);
-		}
-		// snapshot final
+	while (remainingCells()) {
 		await updateGame(store);
-	} else {
-		clearInterval(store.gameInterval as number);
-		store.gameInterval = setInterval(() => updateGame(store), DELTA_TIME * store.config.gameSpeed) as unknown as number;
 	}
+	// snapshot final
+	await updateGame(store);
 };
 
 /* ---------- utilities ---------- */
@@ -158,12 +134,6 @@ export const determineGhostName = (index: number): GhostName => {
 
 const updateGame = async (store: StoreType) => {
 	store.frameCount++;
-
-	/* ---- FRAME-SKIP restored ---- */
-	if (store.frameCount % store.config.gameSpeed !== 0) {
-		pushSnapshot(store);
-		return;
-	}
 
 	/* -------- pacman timers -------- */
 	if (store.pacman.deadRemainingDuration > 0) {
@@ -206,16 +176,8 @@ const updateGame = async (store: StoreType) => {
 	/* -------- end of game -------- */
 	const remaining = store.grid.some((row) => row.some((c) => c.commitsCount > 0));
 	if (!remaining) {
-		if (store.config.outputFormat === 'svg') {
-			const svg = SVG.generateAnimatedSVG(store);
-			store.config.svgCallback(svg);
-		}
-		if (store.config.outputFormat == 'canvas') {
-			Canvas.renderGameOver(store);
-			MusicPlayer.getInstance()
-				.play(Sound.BEGINNING)
-				.then(() => MusicPlayer.getInstance().stopDefaultSound());
-		}
+		const svg = SVG.generateAnimatedSVG(store);
+		store.config.svgCallback(svg);
 		if (store.config.gameStatsCallback) {
 			store.config.gameStatsCallback({
 				totalScore: store.pacman.totalPoints,
@@ -263,11 +225,6 @@ const updateGame = async (store: StoreType) => {
 
 	/* ---- single snapshot per frame ---- */
 	pushSnapshot(store);
-
-	if (store.config.outputFormat == 'canvas') Canvas.drawGrid(store);
-	if (store.config.outputFormat == 'canvas') Canvas.drawPacman(store);
-	if (store.config.outputFormat == 'canvas') Canvas.drawGhosts(store);
-	if (store.config.outputFormat == 'canvas') Canvas.drawSoundController(store);
 };
 
 /* ---------- snapshot helper ---------- */
