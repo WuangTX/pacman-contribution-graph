@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
-import { BreakoutRenderer, GalagaRenderer, PacmanRenderer } from 'pacman-contribution-graph';
+import { BreakoutRenderer, GalagaRenderer, PacmanRenderer, PuzzleBobbleRenderer } from 'pacman-contribution-graph';
 import * as path from 'path';
 
 const STATS_ENDPOINT = 'https://elec.abozanona.me/receive_stats.php';
@@ -49,12 +49,18 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 		};
 
 		let renderer;
-		if (game === 'breakout') {
-			renderer = new BreakoutRenderer(conf);
-		} else if (game === 'galaga') {
-			renderer = new GalagaRenderer(conf);
-		} else {
-			renderer = new PacmanRenderer(conf);
+		switch (game) {
+			case 'breakout':
+				renderer = new BreakoutRenderer(conf);
+				break;
+			case 'galaga':
+				renderer = new GalagaRenderer(conf);
+				break;
+			case 'puzzle-bobble':
+				renderer = new PuzzleBobbleRenderer(conf);
+				break;
+			default:
+				renderer = new PacmanRenderer(conf);
 		}
 		renderer.start().catch(reject);
 	});
@@ -76,7 +82,7 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 					.filter(Boolean)
 			)
 		];
-		const validGames = ['pacman', 'breakout', 'galaga'];
+		const validGames = ['pacman', 'breakout', 'galaga', 'puzzle-bobble'];
 		for (const game of games) {
 			if (!validGames.includes(game)) {
 				core.warning(`Unknown game "${game}" — skipping. Valid values: ${validGames.join(', ')}`);
@@ -101,6 +107,9 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 					break;
 				case 'galaga':
 					prefix = 'galaga-contribution-graph';
+					break;
+				case 'puzzle-bobble':
+					prefix = 'puzzle-bobble-contribution-graph';
 					break;
 				default:
 					prefix = 'pacman-contribution-graph';

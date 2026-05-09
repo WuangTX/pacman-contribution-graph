@@ -3198,6 +3198,1006 @@ const Grid = {
 
 /***/ }),
 
+/***/ "./src/puzzle-bobble/core/constants.ts":
+/*!*********************************************!*\
+  !*** ./src/puzzle-bobble/core/constants.ts ***!
+  \*********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BUBBLE_RADIUS: () => (/* binding */ BUBBLE_RADIUS),
+/* harmony export */   BUBBLE_SPEED: () => (/* binding */ BUBBLE_SPEED),
+/* harmony export */   CANNON_ANGLE_MAX: () => (/* binding */ CANNON_ANGLE_MAX),
+/* harmony export */   CANNON_ANGLE_MIN: () => (/* binding */ CANNON_ANGLE_MIN),
+/* harmony export */   CANNON_AREA_HEIGHT: () => (/* binding */ CANNON_AREA_HEIGHT),
+/* harmony export */   CANNON_TURN_SPEED: () => (/* binding */ CANNON_TURN_SPEED),
+/* harmony export */   CANNON_Y_OFFSET: () => (/* binding */ CANNON_Y_OFFSET),
+/* harmony export */   CELL_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE),
+/* harmony export */   DELTA_TIME: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.DELTA_TIME),
+/* harmony export */   GAME_THEMES: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAME_THEMES),
+/* harmony export */   GAP_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE),
+/* harmony export */   GRID_HEIGHT: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT),
+/* harmony export */   GRID_WIDTH: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH),
+/* harmony export */   PB_ANIM_SPEED_FACTOR: () => (/* binding */ PB_ANIM_SPEED_FACTOR),
+/* harmony export */   PB_COLORS: () => (/* binding */ PB_COLORS),
+/* harmony export */   POP_BURST_FRAMES: () => (/* binding */ POP_BURST_FRAMES),
+/* harmony export */   POP_MIN_CLUSTER: () => (/* binding */ POP_MIN_CLUSTER)
+/* harmony export */ });
+/* harmony import */ var _shared_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/constants */ "./src/shared/constants.ts");
+/* ─── Re-export shared constants so puzzle-bobble code has one import location ─── */
+
+/* ───────────── Cannon ───────────── */
+/** SVG-space X of the cannon (horizontally centered on the grid) */
+const CANNON_Y_OFFSET = 55; // px below grid bottom, within cannon area
+/** Min/max cannon angle in degrees (90 = straight up) */
+const CANNON_ANGLE_MIN = 10;
+const CANNON_ANGLE_MAX = 170;
+/** Cannon turn speed in degrees per frame */
+const CANNON_TURN_SPEED = 6;
+/* ───────────── Bubble physics ───────────── */
+/** Bubble travel speed in SVG pixels per frame */
+const BUBBLE_SPEED = 10;
+/** Radius of a bubble in SVG pixels (slightly smaller than half CELL_SIZE so it fits) */
+const BUBBLE_RADIUS = 9;
+/* ───────────── Pop logic ───────────── */
+/** Minimum connected same-color cluster size to trigger a pop */
+const POP_MIN_CLUSTER = 3;
+/** Number of frames the pop burst animation lasts */
+const POP_BURST_FRAMES = 8;
+/* ───────────── Cannon area ───────────── */
+/** Height in SVG pixels reserved below the grid for the cannon */
+const CANNON_AREA_HEIGHT = 80;
+/** Divisor applied to total frame count when computing SVG animation duration.
+ *  Higher = faster playback. */
+const PB_ANIM_SPEED_FACTOR = 6;
+/* ───────────── Bubble palette ───────────── */
+/**
+ * Fixed 6-colour palette used for Puzzle Bobble bubbles.
+ * A subset of these is used depending on how many cells are occupied:
+ * ≤50 → 2 colours, ≤150 → 3, ≤250 → 4, ≤350 → 5, >350 → 6
+ */
+const PB_COLORS = [
+    '#e74c3c',
+    '#f1c40f',
+    '#2ecc71',
+    '#3498db',
+    '#9b59b6',
+    '#e67e22' // orange
+];
+
+
+/***/ }),
+
+/***/ "./src/puzzle-bobble/core/game.ts":
+/*!****************************************!*\
+  !*** ./src/puzzle-bobble/core/game.ts ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PuzzleBobbleGame: () => (/* binding */ PuzzleBobbleGame)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../renderers/svg */ "./src/puzzle-bobble/renderers/svg.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./constants */ "./src/puzzle-bobble/core/constants.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+/* ────────────────── Coord helpers ────────────────── */
+/** Center SVG-x of grid column col */
+const cellCx = (col) => col * (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE) + _constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE / 2;
+/** Center SVG-y of grid row row */
+const cellCy = (row) => row * (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE) + 15 + _constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE / 2;
+/** Column index from SVG x (clamped) */
+const svgXToCol = (x) => Math.round((x - _constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE / 2) / (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE));
+/** Row index from SVG y */
+const svgYToRow = (y) => Math.round((y - 15 - _constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE / 2) / (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE));
+/* ────────────────── Grid helpers ────────────────── */
+const hasRemainingBubbles = (store) => store.grid.some((col) => col.some((cell) => cell.commitsCount > 0));
+/** Return all cells reachable from (startCol, startRow) sharing the same color index (flood-fill, 4-dir). */
+const floodFillSameColor = (store, startCol, startRow, colorIdx) => {
+    var _a, _b, _c;
+    const visited = new Set();
+    const result = [];
+    const stack = [{ x: startCol, y: startRow }];
+    while (stack.length) {
+        const { x, y } = stack.pop();
+        const key = `${x},${y}`;
+        if (visited.has(key))
+            continue;
+        if (x < 0 || x >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH || y < 0 || y >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT)
+            continue;
+        const cell = (_a = store.grid[x]) === null || _a === void 0 ? void 0 : _a[y];
+        if (!cell || cell.commitsCount === 0)
+            continue;
+        if (((_c = (_b = store.cellBubbleColors[x]) === null || _b === void 0 ? void 0 : _b[y]) !== null && _c !== void 0 ? _c : -1) !== colorIdx)
+            continue;
+        visited.add(key);
+        result.push({ x, y });
+        stack.push({ x: x - 1, y }, { x: x + 1, y }, { x, y: y - 1 }, { x, y: y + 1 });
+    }
+    return result;
+};
+/** Return all cells connected (4-dir, any non-NONE) to row 0 — these are "anchored". */
+const findAnchoredCells = (store) => {
+    var _a, _b, _c;
+    const anchored = new Set();
+    const stack = [];
+    for (let x = 0; x < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH; x++) {
+        if (((_b = (_a = store.grid[x]) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.commitsCount) > 0) {
+            stack.push({ x, y: 0 });
+        }
+    }
+    while (stack.length) {
+        const { x, y } = stack.pop();
+        const key = `${x},${y}`;
+        if (anchored.has(key))
+            continue;
+        if (x < 0 || x >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH || y < 0 || y >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT)
+            continue;
+        if (!((_c = store.grid[x]) === null || _c === void 0 ? void 0 : _c[y]) || store.grid[x][y].commitsCount === 0)
+            continue;
+        anchored.add(key);
+        stack.push({ x: x - 1, y }, { x: x + 1, y }, { x, y: y - 1 }, { x, y: y + 1 });
+    }
+    return anchored;
+};
+/* ────────────────── AI: pick next shot ────────────────── */
+/**
+ * Simulate bubble path (with wall bounces) and return the grid cell it lands in,
+ * plus the final angle used.
+ */
+const simulateShot = (startX, startY, angleDeg, store) => {
+    var _a, _b, _c, _d;
+    const rad = (angleDeg * Math.PI) / 180;
+    let vx = _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_SPEED * Math.cos(rad);
+    let vy = -_constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_SPEED * Math.sin(rad); // up = negative y
+    const svgWidth = _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH * (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE);
+    let x = startX;
+    let y = startY;
+    for (let step = 0; step < 2000; step++) {
+        x += vx;
+        y += vy;
+        // Wall bounce
+        if (x < _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS) {
+            x = _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS;
+            vx = Math.abs(vx);
+        }
+        if (x > svgWidth - _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS) {
+            x = svgWidth - _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS;
+            vx = -Math.abs(vx);
+        }
+        // Off top → miss
+        if (y < 0)
+            return null;
+        const col = svgXToCol(x);
+        const row = svgYToRow(y);
+        if (row < 0 || row >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT || col < 0 || col >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH)
+            continue;
+        // Check if bubble center is close enough to a filled cell
+        for (const [dc, dr] of [
+            [0, 0],
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1]
+        ]) {
+            const nc = col + dc;
+            const nr = row + dr;
+            if (nc < 0 || nc >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH || nr < 0 || nr >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT)
+                continue;
+            if (((_b = (_a = store.grid[nc]) === null || _a === void 0 ? void 0 : _a[nr]) === null || _b === void 0 ? void 0 : _b.commitsCount) > 0) {
+                const cx = cellCx(nc);
+                const cy = cellCy(nr);
+                const dist = Math.hypot(x - cx, y - cy);
+                if (dist < _constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE) {
+                    // Land in adjacent empty cell toward the shot direction
+                    const landCol = Math.max(0, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - 1, svgXToCol(x)));
+                    const landRow = Math.max(0, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT - 1, svgYToRow(y)));
+                    return { col: landCol, row: landRow };
+                }
+            }
+        }
+        // Hit first row ceiling
+        if (row === 0 && ((_d = (_c = store.grid[col]) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.commitsCount) === 0) {
+            return { col: Math.max(0, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - 1, col)), row: 0 };
+        }
+    }
+    return null;
+};
+/**
+ * Choose an angle for the next shot of `bubbleColorIdx`.
+ *
+ * Priority tiers (stable per-shot seed = nextBubbleId):
+ *   1. Pop: lands adjacent to ≥(POP_MIN_CLUSTER-1) same-color cells → cluster pops
+ *   2. Build: lands adjacent to at least 1 same-color cell (within 2 rows)
+ *   3. Any:  lands adjacent to any occupied cell (within 2 rows)
+ *   4. Closest: no adjacency found → pick the angle whose landing is geometrically
+ *      closest to any remaining occupied cell (avoids wasting shots at empty ceiling)
+ */
+const chooseBestAngle = (store, cannonSvgX, cannonSvgY, bubbleColorIdx) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+    const seed = (store.nextBubbleId * 1664525 + 1013904223) >>> 0;
+    const popCandidates = [];
+    const sameColorCandidates = [];
+    const anyCandidates = [];
+    // Wider neighbourhood: same row ±1 col, plus up to 2 rows below (row+1, row+2)
+    const NEIGHBOURHOOD = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [-1, 2],
+        [0, 2],
+        [1, 2]
+    ];
+    for (let angleDeg = _constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_ANGLE_MIN + 2; angleDeg <= _constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_ANGLE_MAX - 2; angleDeg += 2) {
+        const hit = simulateShot(cannonSvgX, cannonSvgY, angleDeg, store);
+        if (!hit)
+            continue;
+        if (((_c = (_b = (_a = store.grid[hit.col]) === null || _a === void 0 ? void 0 : _a[hit.row]) === null || _b === void 0 ? void 0 : _b.commitsCount) !== null && _c !== void 0 ? _c : 0) > 0)
+            continue;
+        let hasSameColorAdj = false;
+        let hasAnyAdj = false;
+        let bestCluster = 0;
+        for (const [dc, dr] of NEIGHBOURHOOD) {
+            const nc = hit.col + dc;
+            const nr = hit.row + dr;
+            if (nc < 0 || nc >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH || nr < 0 || nr >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT)
+                continue;
+            if (((_f = (_e = (_d = store.grid[nc]) === null || _d === void 0 ? void 0 : _d[nr]) === null || _e === void 0 ? void 0 : _e.commitsCount) !== null && _f !== void 0 ? _f : 0) === 0)
+                continue;
+            hasAnyAdj = true;
+            if (((_h = (_g = store.cellBubbleColors[nc]) === null || _g === void 0 ? void 0 : _g[nr]) !== null && _h !== void 0 ? _h : -1) === bubbleColorIdx) {
+                hasSameColorAdj = true;
+                const sz = floodFillSameColor(store, nc, nr, bubbleColorIdx).length + 1;
+                if (sz > bestCluster)
+                    bestCluster = sz;
+            }
+        }
+        if (bestCluster >= _constants__WEBPACK_IMPORTED_MODULE_2__.POP_MIN_CLUSTER) {
+            popCandidates.push({ angleDeg, score: bestCluster });
+        }
+        else if (hasSameColorAdj) {
+            sameColorCandidates.push(angleDeg);
+        }
+        else if (hasAnyAdj) {
+            anyCandidates.push(angleDeg);
+        }
+    }
+    if (popCandidates.length > 0) {
+        const maxScore = Math.max(...popCandidates.map((c) => c.score));
+        const best = popCandidates.filter((c) => c.score === maxScore);
+        return best[seed % best.length].angleDeg;
+    }
+    if (sameColorCandidates.length > 0) {
+        return sameColorCandidates[seed % sameColorCandidates.length];
+    }
+    if (anyCandidates.length > 0) {
+        return anyCandidates[seed % anyCandidates.length];
+    }
+    // Tier 4: no adjacency at all — aim the landing as close as possible to any filled cell
+    let closestAngle = 90;
+    let closestDist = Infinity;
+    for (let angleDeg = _constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_ANGLE_MIN + 2; angleDeg <= _constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_ANGLE_MAX - 2; angleDeg += 2) {
+        const hit = simulateShot(cannonSvgX, cannonSvgY, angleDeg, store);
+        if (!hit)
+            continue;
+        if (((_l = (_k = (_j = store.grid[hit.col]) === null || _j === void 0 ? void 0 : _j[hit.row]) === null || _k === void 0 ? void 0 : _k.commitsCount) !== null && _l !== void 0 ? _l : 0) > 0)
+            continue;
+        const lx = cellCx(hit.col);
+        const ly = cellCy(hit.row);
+        let minDist = Infinity;
+        for (let x = 0; x < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH; x++) {
+            for (let y = 0; y < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT; y++) {
+                if (((_p = (_o = (_m = store.grid[x]) === null || _m === void 0 ? void 0 : _m[y]) === null || _o === void 0 ? void 0 : _o.commitsCount) !== null && _p !== void 0 ? _p : 0) > 0) {
+                    const d = Math.hypot(lx - cellCx(x), ly - cellCy(y));
+                    if (d < minDist)
+                        minDist = d;
+                }
+            }
+        }
+        if (minDist < closestDist) {
+            closestDist = minDist;
+            closestAngle = angleDeg;
+        }
+    }
+    return closestAngle;
+};
+/* ────────────────── Snapshot ────────────────── */
+const pushSnapshot = (store) => {
+    store.gameHistory.push({
+        cannon: Object.assign({}, store.cannon),
+        activeBubble: store.activeBubble ? Object.assign({}, store.activeBubble) : null,
+        nextBubbleColorIndex: store.nextBubbleColorIndex,
+        currentBubbleColorIndex: store.currentBubbleColorIndex
+    });
+};
+/* ────────────────── Game lifecycle ────────────────── */
+const startGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
+    store.frameCount = 0;
+    store.nextBubbleId = 0;
+    store.gameHistory = [];
+    store.cellEvents = [];
+    store.popEvents = [];
+    store.activeBubble = null;
+    store.grid = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.createGridFromData(store);
+    // Assign fixed palette colors to occupied cells
+    const _theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+    const _noneColor = _theme.intensityColors[0];
+    const _occupied = [];
+    for (let _x = 0; _x < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH; _x++) {
+        for (let _y = 0; _y < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT; _y++) {
+            if (store.grid[_x][_y].commitsCount > 0)
+                _occupied.push({ x: _x, y: _y });
+        }
+    }
+    const _numColors = _occupied.length <= 50 ? 2 : _occupied.length <= 150 ? 3 : _occupied.length <= 250 ? 4 : _occupied.length <= 350 ? 5 : 6;
+    // ── Seeded RNG (LCG) ────────────────────────────────────────────────
+    let _rngState = (_occupied.length * 2654435761) >>> 0;
+    const _rng = () => {
+        _rngState = (Math.imul(_rngState, 1664525) + 1013904223) >>> 0;
+        return _rngState / 0x100000000;
+    };
+    store.cellBubbleColors = Array.from({ length: _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH }, () => new Array(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT).fill(-1));
+    // Step 1: random initial assignment
+    for (const { x: _x, y: _y } of _occupied) {
+        store.cellBubbleColors[_x][_y] = Math.floor(_rng() * _numColors);
+    }
+    // Step 2: 3 rounds of majority-vote smoothing → natural color clusters
+    for (let _round = 0; _round < 3; _round++) {
+        const _prev = store.cellBubbleColors.map((col) => [...col]);
+        for (const { x: _x, y: _y } of _occupied) {
+            const _counts = new Array(_numColors).fill(0);
+            let _total = 0;
+            for (const [_dx, _dy] of [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1],
+                [-1, -1],
+                [1, -1],
+                [-1, 1],
+                [1, 1]
+            ]) {
+                const _ni = (_b = (_a = _prev[_x + _dx]) === null || _a === void 0 ? void 0 : _a[_y + _dy]) !== null && _b !== void 0 ? _b : -1;
+                if (_ni >= 0) {
+                    _counts[_ni]++;
+                    _total++;
+                }
+            }
+            if (_total > 0) {
+                const _max = Math.max(..._counts);
+                // Switch only when neighbours strongly agree (≥50 %) to preserve some variety
+                if (_max >= _total * 0.5) {
+                    store.cellBubbleColors[_x][_y] = _counts.indexOf(_max);
+                }
+            }
+        }
+    }
+    // Apply palette color back to grid cells
+    for (const { x: _x, y: _y } of _occupied) {
+        const _ci = store.cellBubbleColors[_x][_y];
+        store.grid[_x][_y] = Object.assign(Object.assign({}, store.grid[_x][_y]), { color: _constants__WEBPACK_IMPORTED_MODULE_2__.PB_COLORS[_ci] });
+    }
+    store.initialColors = store.grid.map((col) => col.map((cell) => (cell.commitsCount > 0 ? cell.color : _noneColor)));
+    // Initialise next-bubble color (random from occupied palette)
+    const _availableCI = [...new Set(_occupied.map(({ x, y }) => store.cellBubbleColors[x][y]))];
+    store.nextBubbleColorIndex = (_c = _availableCI[Math.floor(_rng() * _availableCI.length)]) !== null && _c !== void 0 ? _c : 0;
+    if (!hasRemainingBubbles(store)) {
+        const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_1__.PuzzleBobblesVG.generateAnimatedSVG(store);
+        store.config.svgCallback(svg);
+        store.config.gameOverCallback();
+        return;
+    }
+    store.cannon = { angleDeg: 90 };
+    store.cannonTargetAngle = -1;
+    store.currentBubbleColorIndex = store.nextBubbleColorIndex;
+    const MAX_FRAMES = 5000;
+    while (hasRemainingBubbles(store) && store.frameCount < MAX_FRAMES) {
+        updateGame(store);
+    }
+    const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_1__.PuzzleBobblesVG.generateAnimatedSVG(store);
+    store.config.svgCallback(svg);
+    if (store.config.gameStatsCallback) {
+        store.config.gameStatsCallback({
+            totalScore: store.cellEvents.length,
+            steps: store.frameCount,
+            ghostsEaten: 0
+        });
+    }
+    store.config.gameOverCallback();
+});
+const stopGame = (_store) => { };
+/* ────────────────── Per-frame update ────────────────── */
+const updateGame = (store) => {
+    var _a, _b, _c, _d, _e, _f, _g;
+    store.frameCount++;
+    const svgWidth = _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH * (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE);
+    const gridBottomY = _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT * (_constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE + _constants__WEBPACK_IMPORTED_MODULE_2__.GAP_SIZE) + 15;
+    const cannonSvgX = svgWidth / 2;
+    const cannonSvgY = gridBottomY + 30; // cannon center
+    // ── No active bubble: aim and fire ───────────────────────────────────
+    if (!store.activeBubble) {
+        // Compute target angle once per shot (stable during rotation)
+        if (store.cannonTargetAngle === -1) {
+            store.cannonTargetAngle = chooseBestAngle(store, cannonSvgX, cannonSvgY, store.nextBubbleColorIndex);
+        }
+        const targetAngle = store.cannonTargetAngle;
+        store.currentBubbleColorIndex = store.nextBubbleColorIndex;
+        // Rotate cannon toward target (up to CANNON_TURN_SPEED per frame)
+        const diff = targetAngle - store.cannon.angleDeg;
+        if (Math.abs(diff) <= _constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_TURN_SPEED) {
+            store.cannon.angleDeg = targetAngle;
+        }
+        else {
+            store.cannon.angleDeg += Math.sign(diff) * _constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_TURN_SPEED;
+            store.cannon.angleDeg = Math.max(_constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_ANGLE_MIN, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.CANNON_ANGLE_MAX, store.cannon.angleDeg));
+            pushSnapshot(store);
+            return;
+        }
+        // Fire the pre-selected bubble color
+        const chosenColorIdx = store.nextBubbleColorIndex;
+        store.currentBubbleColorIndex = chosenColorIdx;
+        store.cannonTargetAngle = -1; // will recompute after this bubble lands
+        // Pre-pick the NEXT bubble's color: random from colors still on the board
+        const _existingCI = new Set();
+        for (let _x = 0; _x < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH; _x++) {
+            for (let _y = 0; _y < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT; _y++) {
+                if (store.grid[_x][_y].commitsCount > 0)
+                    _existingCI.add((_b = (_a = store.cellBubbleColors[_x]) === null || _a === void 0 ? void 0 : _a[_y]) !== null && _b !== void 0 ? _b : 0);
+            }
+        }
+        const _ciList = [..._existingCI];
+        if (_ciList.length > 0) {
+            const _seed = (store.frameCount * 1664525 + 1013904223) >>> 0;
+            store.nextBubbleColorIndex = _ciList[_seed % _ciList.length];
+        }
+        const rad = (store.cannon.angleDeg * Math.PI) / 180;
+        store.activeBubble = {
+            id: store.nextBubbleId++,
+            x: cannonSvgX,
+            y: cannonSvgY,
+            vx: _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_SPEED * Math.cos(rad),
+            vy: -_constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_SPEED * Math.sin(rad),
+            colorIndex: chosenColorIdx,
+            active: true
+        };
+        pushSnapshot(store);
+        return;
+    }
+    // ── Move active bubble ───────────────────────────────────────────────
+    const bubble = store.activeBubble;
+    bubble.x += bubble.vx;
+    bubble.y += bubble.vy;
+    // Wall bounces
+    if (bubble.x < _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS) {
+        bubble.x = _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS;
+        bubble.vx = Math.abs(bubble.vx);
+    }
+    if (bubble.x > svgWidth - _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS) {
+        bubble.x = svgWidth - _constants__WEBPACK_IMPORTED_MODULE_2__.BUBBLE_RADIUS;
+        bubble.vx = -Math.abs(bubble.vx);
+    }
+    // Off top or bottom — discard
+    if (bubble.y < 0 || bubble.y > cannonSvgY + 10) {
+        store.activeBubble = null;
+        store.cannonTargetAngle = -1;
+        pushSnapshot(store);
+        return;
+    }
+    // ── Collision detection ──────────────────────────────────────────────
+    let landed = false;
+    let landCol = -1;
+    let landRow = -1;
+    const bCol = svgXToCol(bubble.x);
+    const bRow = svgYToRow(bubble.y);
+    // Check proximity to every neighbor cell
+    outer: for (let dc = -1; dc <= 1; dc++) {
+        for (let dr = -1; dr <= 1; dr++) {
+            const nc = bCol + dc;
+            const nr = bRow + dr;
+            if (nc < 0 || nc >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH || nr < 0 || nr >= _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT)
+                continue;
+            const cx = cellCx(nc);
+            const cy = cellCy(nr);
+            const dist = Math.hypot(bubble.x - cx, bubble.y - cy);
+            if (dist < _constants__WEBPACK_IMPORTED_MODULE_2__.CELL_SIZE * 0.9) {
+                // Filled cell → land in the adjacent empty slot toward the shooter
+                if (((_d = (_c = store.grid[nc]) === null || _c === void 0 ? void 0 : _c[nr]) === null || _d === void 0 ? void 0 : _d.commitsCount) > 0) {
+                    // Land in bCol/bRow if empty, otherwise find nearest empty neighbor
+                    if (((_f = (_e = store.grid[bCol]) === null || _e === void 0 ? void 0 : _e[bRow]) === null || _f === void 0 ? void 0 : _f.commitsCount) === 0 && bCol >= 0 && bCol < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH && bRow >= 0 && bRow < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT) {
+                        landCol = bCol;
+                        landRow = bRow;
+                    }
+                    else {
+                        // Find first empty neighbor
+                        for (const [edc, edr] of [
+                            [0, 1],
+                            [-1, 0],
+                            [1, 0],
+                            [0, -1]
+                        ]) {
+                            const ec = nc + edc;
+                            const er = nr + edr;
+                            if (ec >= 0 && ec < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH && er >= 0 && er < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT && store.grid[ec][er].commitsCount === 0) {
+                                landCol = ec;
+                                landRow = er;
+                                break;
+                            }
+                        }
+                    }
+                    landed = true;
+                    break outer;
+                }
+                // Empty cell that's at row 0 (ceiling)
+                if (nr === 0) {
+                    landCol = nc;
+                    landRow = 0;
+                    landed = true;
+                    break outer;
+                }
+            }
+        }
+    }
+    // Ceiling collision
+    if (!landed && bRow <= 0 && bCol >= 0 && bCol < _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH) {
+        landCol = bCol;
+        landRow = 0;
+        landed = true;
+    }
+    if (landed && landCol >= 0 && landRow >= 0) {
+        landCol = Math.max(0, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - 1, landCol));
+        landRow = Math.max(0, Math.min(_constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT - 1, landRow));
+        // Place bubble in the grid
+        const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+        const noneColor = theme.intensityColors[0];
+        const bubbleColor = ((_g = _constants__WEBPACK_IMPORTED_MODULE_2__.PB_COLORS[bubble.colorIndex]) !== null && _g !== void 0 ? _g : _constants__WEBPACK_IMPORTED_MODULE_2__.PB_COLORS[0]);
+        store.grid[landCol][landRow] = {
+            commitsCount: 1,
+            color: bubbleColor,
+            level: 'FIRST_QUARTILE'
+        };
+        store.cellBubbleColors[landCol][landRow] = bubble.colorIndex;
+        // Record color event
+        store.cellEvents.push({
+            frameIndex: store.gameHistory.length,
+            x: landCol,
+            y: landRow,
+            color: bubbleColor
+        });
+        // ── Pop check ────────────────────────────────────────────────────
+        const cluster = floodFillSameColor(store, landCol, landRow, bubble.colorIndex);
+        if (cluster.length >= _constants__WEBPACK_IMPORTED_MODULE_2__.POP_MIN_CLUSTER) {
+            const popColor = bubbleColor;
+            // Clear only the same-color cluster — no cascade drop
+            for (const { x, y } of cluster) {
+                store.grid[x][y] = {
+                    commitsCount: 0,
+                    color: noneColor,
+                    level: 'NONE'
+                };
+                store.cellBubbleColors[x][y] = -1;
+                store.cellEvents.push({
+                    frameIndex: store.gameHistory.length,
+                    x,
+                    y,
+                    color: noneColor
+                });
+            }
+            // Record pop event (cluster only — no cascade)
+            store.popEvents.push({
+                frameIndex: store.gameHistory.length,
+                cells: cluster,
+                color: popColor
+            });
+            store.config.pointsIncreasedCallback(store.cellEvents.length);
+        }
+        store.activeBubble = null;
+        store.cannonTargetAngle = -1;
+    }
+    pushSnapshot(store);
+};
+const PuzzleBobbleGame = { startGame, stopGame };
+
+
+/***/ }),
+
+/***/ "./src/puzzle-bobble/core/store.ts":
+/*!*****************************************!*\
+  !*** ./src/puzzle-bobble/core/store.ts ***!
+  \*****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PuzzleBobbleStore: () => (/* binding */ PuzzleBobbleStore)
+/* harmony export */ });
+const PuzzleBobbleStore = {
+    frameCount: 0,
+    nextBubbleId: 0,
+    nextBubbleColorIndex: 0,
+    currentBubbleColorIndex: 0,
+    cannonTargetAngle: -1,
+    contributions: [],
+    cannon: { angleDeg: 90 },
+    activeBubble: null,
+    grid: [],
+    monthLabels: [],
+    gameHistory: [],
+    initialColors: [],
+    cellBubbleColors: [],
+    cellEvents: [],
+    popEvents: [],
+    config: undefined
+};
+
+
+/***/ }),
+
+/***/ "./src/puzzle-bobble/index.ts":
+/*!************************************!*\
+  !*** ./src/puzzle-bobble/index.ts ***!
+  \************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PuzzleBobbleRenderer: () => (/* binding */ PuzzleBobbleRenderer)
+/* harmony export */ });
+/* harmony import */ var _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../shared/providers/providers */ "./src/shared/providers/providers.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./core/game */ "./src/puzzle-bobble/core/game.ts");
+/* harmony import */ var _core_store__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./core/store */ "./src/puzzle-bobble/core/store.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+class PuzzleBobbleRenderer {
+    constructor(conf) {
+        this.conf = Object.assign({}, conf);
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const defaultConfig = {
+                platform: 'github',
+                username: '',
+                svgCallback: (_) => { },
+                gameOverCallback: () => { },
+                gameTheme: 'github',
+                pointsIncreasedCallback: (_) => { },
+                githubSettings: { accessToken: '' }
+            };
+            this.store = JSON.parse(JSON.stringify(_core_store__WEBPACK_IMPORTED_MODULE_3__.PuzzleBobbleStore));
+            this.store.config = Object.assign(Object.assign({}, defaultConfig), this.conf);
+            switch (this.store.config.platform) {
+                case 'gitlab':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGitlabContributions(this.store);
+                    break;
+                case 'github':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGithubContributions(this.store);
+                    break;
+                default:
+                    throw new Error(`Unsupported platform: ${this.store.config.platform}`);
+            }
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildGrid(this.store);
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildMonthLabels(this.store);
+            yield _core_game__WEBPACK_IMPORTED_MODULE_2__.PuzzleBobbleGame.startGame(this.store);
+            return this.store;
+        });
+    }
+    stop() {
+        _core_game__WEBPACK_IMPORTED_MODULE_2__.PuzzleBobbleGame.stopGame(this.store);
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/puzzle-bobble/renderers/svg.ts":
+/*!********************************************!*\
+  !*** ./src/puzzle-bobble/renderers/svg.ts ***!
+  \********************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PuzzleBobblesVG: () => (/* binding */ PuzzleBobblesVG)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../core/constants */ "./src/puzzle-bobble/core/constants.ts");
+
+
+const SVG_PRECISION = 4;
+/** Center SVG-x of grid column */
+const toSvgCx = (col) => col * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+/** Center SVG-y of grid row */
+const toSvgCy = (row) => row * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + 15 + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+const trackPush = (track, t, v) => {
+    if (track.keyTimes.length === 0 || t !== track.keyTimes[track.keyTimes.length - 1]) {
+        track.keyTimes.push(t);
+        track.values.push(v);
+    }
+    else {
+        track.values[track.values.length - 1] = v;
+    }
+};
+const finishTrack = (track) => {
+    if (track.keyTimes[track.keyTimes.length - 1] !== 1) {
+        track.keyTimes.push(1);
+        track.values.push(track.values[track.values.length - 1]);
+    }
+    return {
+        keyTimes: track.keyTimes.join(';'),
+        values: track.values.join(';')
+    };
+};
+const t = (frameIdx, totalFrames) => Number((frameIdx / Math.max(totalFrames - 1, 1)).toFixed(SVG_PRECISION));
+/* ────────────────── Cell animation ────────────────── */
+const getCellAnimData = (store, x, y, noneColor) => {
+    var _a, _b;
+    const totalFrames = store.gameHistory.length;
+    const initialColor = (_b = (_a = store.initialColors[x]) === null || _a === void 0 ? void 0 : _a[y]) !== null && _b !== void 0 ? _b : noneColor;
+    const events = store.cellEvents.filter((e) => e.x === x && e.y === y);
+    if (events.length === 0) {
+        return { keyTimes: '0;1', values: `${initialColor};${initialColor}` };
+    }
+    const track = { keyTimes: [0], values: [initialColor] };
+    for (const ev of events) {
+        const ti = t(ev.frameIndex, totalFrames);
+        trackPush(track, ti, ev.color);
+    }
+    return finishTrack(track);
+};
+const extractBubbleFlights = (store) => {
+    const flights = [];
+    const active = new Map();
+    for (let f = 0; f < store.gameHistory.length; f++) {
+        const ab = store.gameHistory[f].activeBubble;
+        // Close flights no longer active
+        for (const [id, flight] of active) {
+            if (!ab || ab.id !== id) {
+                flights.push({
+                    id,
+                    colorIndex: flight.colorIndex,
+                    startFrame: flight.startFrame,
+                    endFrame: f - 1,
+                    xPositions: flight.xs,
+                    yPositions: flight.ys
+                });
+                active.delete(id);
+            }
+        }
+        if (ab && ab.active) {
+            if (!active.has(ab.id)) {
+                active.set(ab.id, { colorIndex: ab.colorIndex, startFrame: f, xs: [ab.x], ys: [ab.y] });
+            }
+            else {
+                const fl = active.get(ab.id);
+                fl.xs.push(ab.x);
+                fl.ys.push(ab.y);
+            }
+        }
+    }
+    for (const [id, flight] of active) {
+        flights.push({
+            id,
+            colorIndex: flight.colorIndex,
+            startFrame: flight.startFrame,
+            endFrame: store.gameHistory.length - 1,
+            xPositions: flight.xs,
+            yPositions: flight.ys
+        });
+    }
+    return flights;
+};
+/* ────────────────── Main SVG generator ────────────────── */
+const generateAnimatedSVG = (store) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    const svgWidth = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+    const svgHeight = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + 15 + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CANNON_AREA_HEIGHT;
+    const totalFrames = store.gameHistory.length;
+    const totalDurationMs = Math.max((totalFrames * _core_constants__WEBPACK_IMPORTED_MODULE_1__.DELTA_TIME) / _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_ANIM_SPEED_FACTOR, 1000);
+    const dur = `${totalDurationMs}ms`;
+    const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+    const noneColor = theme.intensityColors[0];
+    // SVG canvas
+    let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
+    svg += `<desc>Generated with puzzle-bobble-contribution-graph on ${new Date()}</desc>`;
+    // Background
+    svg += `<rect width="100%" height="100%" fill="${theme.gridBackground}"/>`;
+    // ── Month labels ─────────────────────────────────────────────────────
+    let lastMonth = '';
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        if (store.monthLabels[x] !== lastMonth) {
+            const xPos = x * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+            svg += `<text x="${xPos}" y="10" text-anchor="middle" font-size="10" fill="${theme.textColor}">${store.monthLabels[x]}</text>`;
+            lastMonth = store.monthLabels[x];
+        }
+    }
+    // ── Grid cells as circles (bubbles) ──────────────────────────────────
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        for (let y = 0; y < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT; y++) {
+            const cx = toSvgCx(x);
+            const cy = toSvgCy(y);
+            const anim = getCellAnimData(store, x, y, noneColor);
+            svg += `<circle cx="${cx}" cy="${cy}" r="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BUBBLE_RADIUS}" fill="${noneColor}">
+				<animate attributeName="fill" calcMode="discrete" dur="${dur}" repeatCount="indefinite"
+					values="${anim.values}" keyTimes="${anim.keyTimes}"/>
+			</circle>`;
+        }
+    }
+    // ── Flying bubbles (shots from cannon) ───────────────────────────────
+    if (totalFrames >= 2) {
+        const flights = extractBubbleFlights(store);
+        for (const flight of flights) {
+            const tStart = Number((flight.startFrame / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            const tEnd = Number((Math.min(flight.endFrame + 1, totalFrames - 1) / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            const color = ((_a = _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[flight.colorIndex]) !== null && _a !== void 0 ? _a : _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[0]);
+            // Opacity (discrete)
+            let opKt, opVals;
+            if (tStart <= 0 && tEnd >= 1) {
+                opKt = '0;1';
+                opVals = '1;1';
+            }
+            else if (tStart <= 0) {
+                opKt = `0;${tEnd};${tEnd};1`;
+                opVals = '1;1;0;0';
+            }
+            else if (tEnd >= 1) {
+                opKt = `0;${tStart};${tStart};1`;
+                opVals = '0;0;1;1';
+            }
+            else {
+                opKt = `0;${tStart};${tStart};${tEnd};${tEnd};1`;
+                opVals = '0;0;1;1;0;0';
+            }
+            // Position keyTimes/values (linear)
+            const posKts = [];
+            const posVals = [];
+            const firstX = flight.xPositions[0].toFixed(1);
+            const firstY = flight.yPositions[0].toFixed(1);
+            if (flight.startFrame > 0) {
+                posKts.push(0);
+                posVals.push(`${firstX},${firstY}`);
+            }
+            for (let i = 0; i < flight.xPositions.length; i++) {
+                const fi = flight.startFrame + i;
+                const ti = Number((fi / (totalFrames - 1)).toFixed(SVG_PRECISION));
+                const px = flight.xPositions[i].toFixed(1);
+                const py = flight.yPositions[i].toFixed(1);
+                if (posKts.length === 0 || ti !== posKts[posKts.length - 1]) {
+                    posKts.push(ti);
+                    posVals.push(`${px},${py}`);
+                }
+            }
+            if (posKts[posKts.length - 1] !== 1) {
+                const lx = flight.xPositions[flight.xPositions.length - 1].toFixed(1);
+                const ly = flight.yPositions[flight.yPositions.length - 1].toFixed(1);
+                posKts.push(1);
+                posVals.push(`${lx},${ly}`);
+            }
+            svg += `<circle cx="0" cy="0" r="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BUBBLE_RADIUS}" fill="${color}" opacity="0" stroke="white" stroke-width="1" stroke-opacity="0.4">
+				<animate attributeName="opacity" calcMode="discrete" dur="${dur}" repeatCount="indefinite"
+					keyTimes="${opKt}" values="${opVals}"/>
+				<animateTransform attributeName="transform" type="translate" calcMode="linear"
+					dur="${dur}" repeatCount="indefinite"
+					keyTimes="${posKts.join(';')}" values="${posVals.join(';')}"/>
+			</circle>`;
+        }
+    }
+    // ── Pop burst effects ────────────────────────────────────────────────
+    if (totalFrames >= 2) {
+        for (const pop of store.popEvents) {
+            const tS = Number((pop.frameIndex / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            const tE = Number((Math.min(pop.frameIndex + _core_constants__WEBPACK_IMPORTED_MODULE_1__.POP_BURST_FRAMES, totalFrames - 1) / (totalFrames - 1)).toFixed(SVG_PRECISION));
+            if (tE <= tS)
+                continue;
+            const kt = `0;${tS};${tS};${tE};1`;
+            const opVals = `0;0;1;0;0`;
+            for (const { x, y } of pop.cells) {
+                const cx = toSvgCx(x).toFixed(1);
+                const cy = toSvgCy(y).toFixed(1);
+                // Expanding ring
+                svg += `<circle cx="${cx}" cy="${cy}" r="4" fill="none" stroke="${pop.color}" stroke-width="2" opacity="0">
+					<animate attributeName="r"            calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="4;4;4;${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE};${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}"/>
+					<animate attributeName="stroke-width" calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="2;2;2;0;0"/>
+					<animate attributeName="opacity"      calcMode="linear" dur="${dur}" repeatCount="indefinite" keyTimes="${kt}" values="${opVals}"/>
+				</circle>`;
+            }
+        }
+    }
+    // ── Cannon ────────────────────────────────────────────────────────────
+    if (totalFrames >= 2) {
+        const gridBottomY = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + 15;
+        const cannonCx = (svgWidth / 2).toFixed(1);
+        const cannonCy = (gridBottomY + 30).toFixed(1);
+        // Barrel: a line rotated by cannon angle
+        // Collect angle keyTimes/values
+        const cannonTrack = { keyTimes: [], values: [] };
+        for (let f = 0; f < store.gameHistory.length; f++) {
+            const ti = t(f, totalFrames);
+            const angleDeg = store.gameHistory[f].cannon.angleDeg;
+            // SVG rotation: 0° = right, so we rotate from 90°-angleDeg
+            const svgRot = (90 - angleDeg).toFixed(1);
+            trackPush(cannonTrack, ti, `${svgRot} ${cannonCx} ${cannonCy}`);
+        }
+        const cannonAnim = finishTrack(cannonTrack);
+        const barrelLen = 22;
+        const bx2 = Number(cannonCx);
+        const by1 = Number(cannonCy);
+        const by2 = by1 - barrelLen;
+        // Base circle — fill animates to match current bubble color
+        const baseColorTrack = { keyTimes: [], values: [] };
+        for (let f = 0; f < store.gameHistory.length; f++) {
+            const ti = t(f, totalFrames);
+            const ci = store.gameHistory[f].currentBubbleColorIndex;
+            trackPush(baseColorTrack, ti, ((_b = _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[ci]) !== null && _b !== void 0 ? _b : _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[0]));
+        }
+        const baseColorAnim = finishTrack(baseColorTrack);
+        const baseInitColor = ((_e = _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[(_d = (_c = store.gameHistory[0]) === null || _c === void 0 ? void 0 : _c.currentBubbleColorIndex) !== null && _d !== void 0 ? _d : 0]) !== null && _e !== void 0 ? _e : _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[0]);
+        svg += `<circle cx="${cannonCx}" cy="${cannonCy}" r="10" fill="${baseInitColor}" stroke="white" stroke-width="2">
+			<animate attributeName="fill" calcMode="discrete" dur="${dur}" repeatCount="indefinite"
+				values="${baseColorAnim.values}" keyTimes="${baseColorAnim.keyTimes}"/>
+			<animateTransform attributeName="transform" type="rotate" calcMode="linear"
+				dur="${dur}" repeatCount="indefinite"
+				keyTimes="${cannonAnim.keyTimes}" values="${cannonAnim.values}"/>
+		</circle>`;
+        // Barrel (rotates with linear interpolation so the sweep is visible)
+        svg += `<line x1="${bx2}" y1="${by1}" x2="${bx2}" y2="${by2}" stroke="#cccccc" stroke-width="6" stroke-linecap="round">
+			<animateTransform attributeName="transform" type="rotate" calcMode="linear"
+				dur="${dur}" repeatCount="indefinite"
+				keyTimes="${cannonAnim.keyTimes}" values="${cannonAnim.values}"/>
+		</line>`;
+        // ── Next bubble indicator ────────────────────────────────────────
+        const nextTrack = { keyTimes: [], values: [] };
+        for (let f = 0; f < store.gameHistory.length; f++) {
+            const ti = t(f, totalFrames);
+            const nci = store.gameHistory[f].nextBubbleColorIndex;
+            trackPush(nextTrack, ti, ((_f = _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[nci]) !== null && _f !== void 0 ? _f : _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[0]));
+        }
+        const nextAnim = finishTrack(nextTrack);
+        const nextCx = (Number(cannonCx) + 28).toFixed(1);
+        const nextCy = cannonCy;
+        const nextInitColor = ((_j = _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[(_h = (_g = store.gameHistory[0]) === null || _g === void 0 ? void 0 : _g.nextBubbleColorIndex) !== null && _h !== void 0 ? _h : 0]) !== null && _j !== void 0 ? _j : _core_constants__WEBPACK_IMPORTED_MODULE_1__.PB_COLORS[0]);
+        svg += `<text x="${nextCx}" y="${(Number(cannonCy) - 16).toFixed(1)}" text-anchor="middle" font-size="8" fill="${theme.textColor}" opacity="0.8">NEXT</text>`;
+        svg += `<circle cx="${nextCx}" cy="${nextCy}" r="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BUBBLE_RADIUS}" fill="${nextInitColor}" stroke="white" stroke-width="1" stroke-opacity="0.5">
+			<animate attributeName="fill" calcMode="discrete" dur="${dur}" repeatCount="indefinite"
+				values="${nextAnim.values}" keyTimes="${nextAnim.keyTimes}"/>
+		</circle>`;
+    }
+    svg += '</svg>';
+    return svg;
+};
+const PuzzleBobblesVG = { generateAnimatedSVG };
+
+
+/***/ }),
+
 /***/ "./src/shared/constants.ts":
 /*!*********************************!*\
   !*** ./src/shared/constants.ts ***!
@@ -3634,11 +4634,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   BreakoutRenderer: () => (/* reexport safe */ _breakout_index__WEBPACK_IMPORTED_MODULE_0__.BreakoutRenderer),
 /* harmony export */   GalagaRenderer: () => (/* reexport safe */ _galaga_index__WEBPACK_IMPORTED_MODULE_1__.GalagaRenderer),
 /* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_2__.PacmanRenderer),
-/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_2__.PlayerStyle)
+/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_2__.PlayerStyle),
+/* harmony export */   PuzzleBobbleRenderer: () => (/* reexport safe */ _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_3__.PuzzleBobbleRenderer)
 /* harmony export */ });
 /* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./breakout/index */ "./src/breakout/index.ts");
 /* harmony import */ var _galaga_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./galaga/index */ "./src/galaga/index.ts");
 /* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
+/* harmony import */ var _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./puzzle-bobble/index */ "./src/puzzle-bobble/index.ts");
+
 
 
 
@@ -3649,6 +4652,7 @@ var __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
 var __webpack_exports__GalagaRenderer = __webpack_exports__.GalagaRenderer;
 var __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
 var __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
-export { __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle };
+var __webpack_exports__PuzzleBobbleRenderer = __webpack_exports__.PuzzleBobbleRenderer;
+export { __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle, __webpack_exports__PuzzleBobbleRenderer as PuzzleBobbleRenderer };
 
 //# sourceMappingURL=pacman-contribution-graph.js.map

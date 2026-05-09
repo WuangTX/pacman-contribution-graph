@@ -11,11 +11,12 @@ Transform your GitHub or GitLab contribution graph into arcade games! This JavaS
 
 ## 🕹️ Available Games
 
-| Game            | Description                                             |
-| --------------- | ------------------------------------------------------- |
-| 👻 **Pac-Man**  | Pac-Man eats your contributions while ghosts give chase |
-| 🧱 **Breakout** | A ball bounces around breaking your contribution bricks |
-| 🚀 **Galaga**   | A fighter ship shoots lasers at your contribution grid  |
+| Game                 | Description                                                          |
+| -------------------- | -------------------------------------------------------------------- |
+| 👻 **Pac-Man**       | Pac-Man eats your contributions while ghosts give chase              |
+| 🧱 **Breakout**      | A ball bounces around breaking your contribution bricks              |
+| 🚀 **Galaga**        | A fighter ship shoots lasers at your contribution grid               |
+| 🫧 **Puzzle Bobble** | A cannon fires colored bubbles to pop matching contribution clusters |
 
 More games coming soon!
 
@@ -41,6 +42,14 @@ More games coming soon!
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/galaga-contribution-graph-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/galaga-contribution-graph.svg">
   <img alt="galaga contribution graph" src="https://raw.githubusercontent.com/abozanona/abozanona/output/galaga-contribution-graph.svg">
+</picture>
+
+### Puzzle Bobble preview
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/puzzle-bobble-contribution-graph-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/puzzle-bobble-contribution-graph.svg">
+  <img alt="puzzle bobble contribution graph" src="https://raw.githubusercontent.com/abozanona/abozanona/output/puzzle-bobble-contribution-graph.svg">
 </picture>
 
 ## 🎮 Features
@@ -148,6 +157,28 @@ Here's how to set up and run the games:
     renderer.start();
     ```
 
+    **Puzzle Bobble:**
+
+    ```javascript
+    import { PuzzleBobbleRenderer } from 'pacman-contribution-graph';
+
+    const renderer = new PuzzleBobbleRenderer({
+    	username: 'your_username',
+    	platform: 'github', // or 'gitlab'
+    	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
+    	svgCallback: (svg) => {
+    		document.getElementById('output').innerHTML = svg;
+    	},
+    	gameOverCallback: () => {
+    		console.log('Game over!');
+    	},
+    	pointsIncreasedCallback: (points) => {
+    		console.log('Score:', points);
+    	}
+    });
+    renderer.start();
+    ```
+
 3. **Customize Settings**: Adjust the parameters as needed:
     - `username`: Your GitHub or GitLab username.
     - `platform`: Specify `'github'` or `'gitlab'`.
@@ -197,9 +228,9 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
                       with:
                           github_user_name: ${{ github.repository_owner }}
                           # Comma-separated list of games to generate.
-                          # Valid values: pacman, breakout, galaga
+                          # Valid values: pacman, breakout, galaga, puzzle-bobble
                           # Default: pacman
-                          games: 'pacman,breakout,galaga'
+                          games: 'pacman,breakout,galaga,puzzle-bobble'
 
                     # Push the generated SVGs to the output branch
                     - name: push SVGs to the output branch
@@ -237,6 +268,13 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
             <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/galaga-contribution-graph-dark.svg">
             <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/galaga-contribution-graph.svg">
             <img alt="galaga contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/galaga-contribution-graph.svg">
+        </picture>
+
+        <!-- Puzzle Bobble -->
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph.svg">
+            <img alt="puzzle bobble contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph.svg">
         </picture>
         ```
 
@@ -288,6 +326,9 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
                 # Galaga
                 - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game galaga --gameTheme gitlab --output dist/galaga-contribution-graph.svg
                 - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game galaga --gameTheme gitlab-dark --output dist/galaga-contribution-graph-dark.svg
+                # Puzzle Bobble
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game puzzle-bobble --gameTheme gitlab --output dist/puzzle-bobble-contribution-graph.svg
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game puzzle-bobble --gameTheme gitlab-dark --output dist/puzzle-bobble-contribution-graph-dark.svg
             artifacts:
                 paths:
                     - dist/pacman-contribution-graph.svg
@@ -296,6 +337,8 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
                     - dist/breakout-contribution-graph-dark.svg
                     - dist/galaga-contribution-graph.svg
                     - dist/galaga-contribution-graph-dark.svg
+                    - dist/puzzle-bobble-contribution-graph.svg
+                    - dist/puzzle-bobble-contribution-graph-dark.svg
                 expire_in: 1 hour
             rules:
                 - if: '$CI_PIPELINE_SOURCE == "schedule"'
@@ -345,6 +388,13 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
             <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/galaga-contribution-graph-dark.svg">
             <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/galaga-contribution-graph.svg">
             <img alt="galaga contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/galaga-contribution-graph.svg">
+        </picture>
+
+        <!-- Puzzle Bobble -->
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph.svg">
+            <img alt="puzzle bobble contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph.svg">
         </picture>
         ```
 

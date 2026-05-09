@@ -170,6 +170,7 @@
 								<option value="pacman">👻 Pac-Man</option>
 								<option value="breakout">🧱 Breakout</option>
 								<option value="galaga">🚀 Galaga</option>
+								<option value="puzzle-bobble">🫧 Puzzle Bobble</option>
 							</select>
 						</div>
 					</div>
@@ -515,7 +516,7 @@ pacman-contribution-graph --game galaga --platform github --username your_userna
 
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 		<script type="module">
-			import { PacmanRenderer, BreakoutRenderer, GalagaRenderer } from './dist/pacman-contribution-graph.js';
+			import { PacmanRenderer, BreakoutRenderer, GalagaRenderer, PuzzleBobbleRenderer } from './dist/pacman-contribution-graph.js';
 
 			const generateButton = document.getElementById('generate');
 			const usernameInput = document.getElementById('username');
@@ -654,6 +655,8 @@ pacman-contribution-graph --game galaga --platform github --username your_userna
 					pr = new BreakoutRenderer({ ...config, ...callbacks });
 				} else if (selectedGame === 'galaga') {
 					pr = new GalagaRenderer({ ...config, ...callbacks });
+				} else if (selectedGame === 'puzzle-bobble') {
+					pr = new PuzzleBobbleRenderer({ ...config, ...callbacks });
 				} else {
 					pr = new PacmanRenderer({ ...config, ...callbacks, playerStyle: playerStyleSelect.value });
 				}
@@ -664,9 +667,7 @@ pacman-contribution-graph --game galaga --platform github --username your_userna
 				if (currentSvgBlob) {
 					const link = document.createElement('a');
 					link.href = currentSvgBlob.url;
-					link.download = currentSvgBlob.game === 'breakout' ? 'breakout-contributions.svg' :
-				                currentSvgBlob.game === 'galaga'   ? 'galaga-contributions.svg'   :
-				                                                    'pacman-contributions.svg';
+					link.download = 'acrade-contributions.svg';
 					document.body.appendChild(link);
 					link.click();
 					document.body.removeChild(link);
