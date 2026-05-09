@@ -400,7 +400,7 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
 
 5. **Commit and Push**:
 
-    - Push the changes to GitHub. The Gitlab pipeline will work once, updating the Pac-Man game on your profile.
+    - Push the changes to GitLab. The Gitlab pipeline will work once, updating the Pac-Man game on your profile.
 
 6. **Schedule pipeline running**
     - Go to your project in GitLab
