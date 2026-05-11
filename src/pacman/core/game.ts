@@ -144,11 +144,6 @@ const updateGame = async (store: StoreType) => {
 		if (store.pacman.powerupRemainingDuration === 0) {
 			store.ghosts.forEach((g) => {
 				if (g.name === 'eyes') return;
-				// Only transition out of scared if the ghost is at a clean
-				// integer boundary. Ghosts in the middle of a half-step trip
-				// keep scared=true so moveScaredGhost can finish the trip
-				// before clearing the flag; otherwise subX/subY would be left
-				// at a fractional value with no code path to clean them up.
 				const atBoundary = (g.subX ?? 0) === 0 && (g.subY ?? 0) === 0;
 				if (atBoundary) {
 					g.scared = false;
@@ -240,9 +235,6 @@ const checkCollisions = (store: StoreType) => {
 				ghost.name = 'eyes';
 				ghost.scared = false;
 				ghost.target = { x: 26, y: 3 };
-				// Reset sub-positions: eyes return home at integer-step speed
-				// and any fractional offset would leave the eye sprite drawn
-				// half-cell off forever.
 				ghost.subX = 0;
 				ghost.subY = 0;
 				store.pacman.points += 10;
