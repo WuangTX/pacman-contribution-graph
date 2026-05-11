@@ -311,7 +311,9 @@ const checkAndEatPoint = (store: StoreType) => {
 
 const activatePowerUp = (store: StoreType) => {
 	store.pacman.powerupRemainingDuration = PACMAN_POWERUP_DURATION;
-	store.ghosts.forEach((g) => (g.scared = true));
+	store.ghosts.forEach((g) => {
+		if (g.name !== 'eyes') g.scared = true;
+	});
 };
 
 export const PacmanMovement = {
