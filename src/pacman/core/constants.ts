@@ -11,7 +11,7 @@ export const PACMAN_COLOR_DEAD = '#80808064';
 export const GHOST_NAMES: GhostName[] = ['blinky', 'clyde', 'inky', 'pinky', 'eyes'];
 
 export const PACMAN_DEATH_DURATION = 10;
-export const PACMAN_POWERUP_DURATION = 30;
+export const PACMAN_POWERUP_DURATION = 15;
 
 /* ───────────── Ghost sprites (base64) ───────────── */
 export const GHOSTS: {
