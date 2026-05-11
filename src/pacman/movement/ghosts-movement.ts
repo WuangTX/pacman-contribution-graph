@@ -191,9 +191,68 @@ const moveGhostToScatterTarget = (ghost: Ghost, store: StoreType) => {
 	}
 };
 
-// When scared, ghosts move randomly but with some intelligence
+// When scared, ghosts move smoothly at half speed.
+//
+// Design: trip-based commitment. A "trip" is a 1-cell move that takes 2 frames
+// (0.5 cells per frame). AI direction decisions only happen at integer cell
+// boundaries (subX === 0 AND subY === 0). Mid-trip, the ghost continues in
+// the committed direction. This avoids two issues that the naive 0.5-per-frame
+// approach produces:
+//   - Direction oscillation at the AI layer leaves ghost wobbling between
+//     0 and 0.5 forever.
+//   - Powerup ending mid-trip leaves subX/subY at a fractional value that
+//     never gets cleared by non-scared movement code paths.
+//
+// When the powerup duration hits 0 (handled in game.ts updateGame), boundary
+// ghosts get scared=false immediately. Mid-trip ghosts stay scared and finish
+// their trip here, then transition out of scared at the next boundary.
 const moveScaredGhost = (ghost: Ghost, store: StoreType) => {
-	// Check if you already have a target or if you have already reached the current target
+	const SCARED_SPEED = 0.5;
+	const subX = ghost.subX ?? 0;
+	const subY = ghost.subY ?? 0;
+	const atBoundary = subX === 0 && subY === 0;
+
+	if (!atBoundary) {
+		// Mid-trip: keep moving in the direction we started in.
+		// Direction is encoded in the sign of subX / subY.
+		const dirX = subX > 0 ? 1 : subX < 0 ? -1 : 0;
+		const dirY = subY > 0 ? 1 : subY < 0 ? -1 : 0;
+		ghost.subX = subX + dirX * SCARED_SPEED;
+		ghost.subY = subY + dirY * SCARED_SPEED;
+		if ((ghost.subX ?? 0) >= 1) {
+			ghost.x += 1;
+			ghost.subX = 0;
+		} else if ((ghost.subX ?? 0) <= -1) {
+			ghost.x -= 1;
+			ghost.subX = 0;
+		}
+		if ((ghost.subY ?? 0) >= 1) {
+			ghost.y += 1;
+			ghost.subY = 0;
+		} else if ((ghost.subY ?? 0) <= -1) {
+			ghost.y -= 1;
+			ghost.subY = 0;
+		}
+		// Trip just completed (we landed on an integer boundary). If the
+		// powerup has expired, transition out of scared mode now so the
+		// snapshot for this frame captures the clean handoff.
+		const nowAtBoundary = (ghost.subX ?? 0) === 0 && (ghost.subY ?? 0) === 0;
+		if (nowAtBoundary && store.pacman.powerupRemainingDuration === 0) {
+			ghost.scared = false;
+		}
+		return;
+	}
+
+	// At integer boundary. If the powerup has ended (we got here because
+	// updateGame left scared=true while waiting for trip completion), finish
+	// the transition. This branch covers the rare case where the boundary
+	// ghost reached this point through some other path.
+	if (store.pacman.powerupRemainingDuration === 0) {
+		ghost.scared = false;
+		return;
+	}
+
+	// Else: AI picks a new direction for the next trip.
 	if (!ghost.target || (ghost.x === ghost.target.x && ghost.y === ghost.target.y)) {
 		ghost.target = getRandomDestination(ghost.x, ghost.y);
 	}
@@ -201,44 +260,33 @@ const moveScaredGhost = (ghost: Ghost, store: StoreType) => {
 	const validMoves = getValidMovesWithoutReverse(ghost);
 	if (validMoves.length === 0) return;
 
-	// Move toward target but with some randomness to appear "scared"
 	const dx = ghost.target.x - ghost.x;
 	const dy = ghost.target.y - ghost.y;
-
-	// Filter moves that generally go toward the target but with randomness
 	let possibleMoves = validMoves;
-
-	// 50% chance to choose a completely random move
 	if (Math.random() < 0.5) {
-		// Choose any valid move
+		// Random direction
 	} else {
-		// Try to choose a move that goes in the direction of the target.
 		const goodMoves = validMoves.filter((move) => {
 			const moveX = move[0];
 			const moveY = move[1];
 			return (dx > 0 && moveX > 0) || (dx < 0 && moveX < 0) || (dy > 0 && moveY > 0) || (dy < 0 && moveY < 0);
 		});
-
-		// If there are "good" moves, use them.
 		if (goodMoves.length > 0) {
 			possibleMoves = goodMoves;
 		}
 	}
 
-	// Choose a random move from the possible moves
 	const [moveX, moveY] = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
 
-	// If Pacman has power-up, ghosts move slower (60% slower)
-	if (store.pacman.powerupRemainingDuration && Math.random() < 0.6) return;
-
-	// Update ghost direction based on movement
 	if (moveX > 0) ghost.direction = 'right';
 	else if (moveX < 0) ghost.direction = 'left';
 	else if (moveY > 0) ghost.direction = 'down';
 	else if (moveY < 0) ghost.direction = 'up';
 
-	ghost.x += moveX;
-	ghost.y += moveY;
+	// Start a new trip: take the first half-step. The next frame this
+	// function runs, the mid-trip branch above will finish the trip.
+	ghost.subX = moveX * SCARED_SPEED;
+	ghost.subY = moveY * SCARED_SPEED;
 };
 
 // Function to get valid moves that are not reversals of the current direction
