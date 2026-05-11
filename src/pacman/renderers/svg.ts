@@ -275,8 +275,8 @@ const generatePacManPositions = (store: StoreType): string[] => {
 
 const generatePacManRotations = (store: StoreType): string[] => {
 	const pivit = CELL_SIZE / 2;
-	return store.gameHistory.map((state) => {
-		switch (state.pacman.direction) {
+	const directionToRotation = (direction: 'right' | 'left' | 'up' | 'down'): string => {
+		switch (direction) {
 			case 'right':
 				return `0 ${pivit} ${pivit}`;
 			case 'left':
@@ -288,6 +288,16 @@ const generatePacManRotations = (store: StoreType): string[] => {
 			default:
 				return `0 ${pivit} ${pivit}`;
 		}
+	};
+	// Position interpolates linearly between snapshot[i] and snapshot[i+1]
+	// during interval i. The direction stored in snapshot[i+1] is the
+	// direction Pac-Man took during that move, so it must be displayed for
+	// the entire slide, not just at its end. Shift the rotation values one
+	// frame forward so the discrete keyframe at time keyTimes[i] holds the
+	// direction of the slide that begins there.
+	return store.gameHistory.map((_, i) => {
+		const lookaheadIndex = Math.min(i + 1, store.gameHistory.length - 1);
+		return directionToRotation(store.gameHistory[lookaheadIndex].pacman.direction);
 	});
 };
 
