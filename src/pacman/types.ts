@@ -41,6 +41,8 @@ export interface Ghost {
 	respawnCounter: number;
 	freezeCounter: number;
 	justReleasedFromHouse: boolean;
+	subX?: number;
+	subY?: number;
 }
 
 /* ───────────────────────── Store ───────────────────────────── */

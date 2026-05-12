@@ -311,8 +311,10 @@ const generateGhostPositions = (store: StoreType, ghostIndex: number): string[] 
 			return '0,0'; // Default value for cases where the ghost does not exist
 		}
 		const ghost = state.ghosts[ghostIndex];
-		const x = ghost.x * (CELL_SIZE + GAP_SIZE);
-		const y = ghost.y * (CELL_SIZE + GAP_SIZE) + 15;
+		const fx = ghost.x + (ghost.subX ?? 0);
+		const fy = ghost.y + (ghost.subY ?? 0);
+		const x = fx * (CELL_SIZE + GAP_SIZE);
+		const y = fy * (CELL_SIZE + GAP_SIZE) + 15;
 		return `${x},${y}`;
 	});
 };

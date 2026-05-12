@@ -193,6 +193,43 @@ const moveGhostToScatterTarget = (ghost: Ghost, store: StoreType) => {
 
 // When scared, ghosts move randomly but with some intelligence
 const moveScaredGhost = (ghost: Ghost, store: StoreType) => {
+	// Ghosts move at half speed during power-up (one cell per two frames)
+	const SCARED_SPEED = 0.5;
+	const subX = ghost.subX ?? 0;
+	const subY = ghost.subY ?? 0;
+	const atBoundary = subX === 0 && subY === 0;
+
+	if (!atBoundary) {
+		const dirX = subX > 0 ? 1 : subX < 0 ? -1 : 0;
+		const dirY = subY > 0 ? 1 : subY < 0 ? -1 : 0;
+		ghost.subX = subX + dirX * SCARED_SPEED;
+		ghost.subY = subY + dirY * SCARED_SPEED;
+		if ((ghost.subX ?? 0) >= 1) {
+			ghost.x += 1;
+			ghost.subX = 0;
+		} else if ((ghost.subX ?? 0) <= -1) {
+			ghost.x -= 1;
+			ghost.subX = 0;
+		}
+		if ((ghost.subY ?? 0) >= 1) {
+			ghost.y += 1;
+			ghost.subY = 0;
+		} else if ((ghost.subY ?? 0) <= -1) {
+			ghost.y -= 1;
+			ghost.subY = 0;
+		}
+		const nowAtBoundary = (ghost.subX ?? 0) === 0 && (ghost.subY ?? 0) === 0;
+		if (nowAtBoundary && store.pacman.powerupRemainingDuration === 0) {
+			ghost.scared = false;
+		}
+		return;
+	}
+
+	if (store.pacman.powerupRemainingDuration === 0) {
+		ghost.scared = false;
+		return;
+	}
+
 	// Check if you already have a target or if you have already reached the current target
 	if (!ghost.target || (ghost.x === ghost.target.x && ghost.y === ghost.target.y)) {
 		ghost.target = getRandomDestination(ghost.x, ghost.y);
@@ -228,17 +265,14 @@ const moveScaredGhost = (ghost: Ghost, store: StoreType) => {
 	// Choose a random move from the possible moves
 	const [moveX, moveY] = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
 
-	// If Pacman has power-up, ghosts move slower (60% slower)
-	if (store.pacman.powerupRemainingDuration && Math.random() < 0.6) return;
-
 	// Update ghost direction based on movement
 	if (moveX > 0) ghost.direction = 'right';
 	else if (moveX < 0) ghost.direction = 'left';
 	else if (moveY > 0) ghost.direction = 'down';
 	else if (moveY < 0) ghost.direction = 'up';
 
-	ghost.x += moveX;
-	ghost.y += moveY;
+	ghost.subX = moveX * SCARED_SPEED;
+	ghost.subY = moveY * SCARED_SPEED;
 };
 
 // Function to get valid moves that are not reversals of the current direction

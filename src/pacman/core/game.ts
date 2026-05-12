@@ -143,7 +143,11 @@ const updateGame = async (store: StoreType) => {
 		store.pacman.powerupRemainingDuration--;
 		if (store.pacman.powerupRemainingDuration === 0) {
 			store.ghosts.forEach((g) => {
-				if (g.name !== 'eyes') g.scared = false;
+				if (g.name === 'eyes') return;
+				const atBoundary = (g.subX ?? 0) === 0 && (g.subY ?? 0) === 0;
+				if (atBoundary) {
+					g.scared = false;
+				}
 			});
 			store.pacman.points = 0;
 		}
@@ -231,6 +235,8 @@ const checkCollisions = (store: StoreType) => {
 				ghost.name = 'eyes';
 				ghost.scared = false;
 				ghost.target = { x: 26, y: 3 };
+				ghost.subX = 0;
+				ghost.subY = 0;
 				store.pacman.points += 10;
 				store.pacman.ghostsEaten = (store.pacman.ghostsEaten ?? 0) + 1;
 			} else {
