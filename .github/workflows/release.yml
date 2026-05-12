@@ -52,8 +52,6 @@ jobs:
 
       - name: Publish main package to npm
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Update github-action package.json
         run: |
