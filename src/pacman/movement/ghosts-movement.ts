@@ -180,6 +180,21 @@ const moveGhostToScatterTarget = (ghost: Ghost, store: StoreType) => {
 	const target = SCATTER_CORNERS[ghost.name] || SCATTER_CORNERS['blinky'];
 	ghost.target = target;
 
+	// At the corner, step to an adjacent cell so BFS loops the ghost back next frame
+	if (ghost.x === target.x && ghost.y === target.y) {
+		const moves = MovementUtils.getValidMoves(ghost.x, ghost.y);
+		if (moves.length > 0) {
+			const [dx, dy] = moves[0];
+			ghost.x += dx;
+			ghost.y += dy;
+			if (dx > 0) ghost.direction = 'right';
+			else if (dx < 0) ghost.direction = 'left';
+			else if (dy > 0) ghost.direction = 'down';
+			else if (dy < 0) ghost.direction = 'up';
+		}
+		return;
+	}
+
 	const nextMove = BFSTargetLocation(ghost.x, ghost.y, target.x, target.y, ghost.direction);
 	if (nextMove) {
 		ghost.x = nextMove.x;
