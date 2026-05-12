@@ -68,7 +68,7 @@ jobs:
           cd github-action
           for i in $(seq 1 12); do
             echo "Attempt $i: installing pacman-contribution-graph@$VERSION..."
-            pnpm install && break
+            pnpm install --no-frozen-lockfile && break
             echo "Not available yet. Waiting 15s..."
             sleep 15
           done
