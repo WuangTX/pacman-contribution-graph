@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bump root package version
+        id: version
+        run: |
+          NEW_VERSION=$(npm version ${{ inputs.bump }} --no-git-tag-version | sed 's/^v//')
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped to v$NEW_VERSION"
+
+      - name: Build main package
+        run: pnpm build
+
+      - name: Publish main package to npm
+        run: npm publish
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Update github-action package.json
+        run: |
+          VERSION=${{ steps.version.outputs.new_version }}
+          cd github-action
+          npm pkg set version="$VERSION"
+          npm pkg set dependencies.pacman-contribution-graph="$VERSION"
+
+      - name: Install github-action dependencies
+        # Retry until the newly published version propagates on the npm registry
+        run: |
+          VERSION=${{ steps.version.outputs.new_version }}
+          cd github-action
+          for i in $(seq 1 12); do
+            echo "Attempt $i: installing pacman-contribution-graph@$VERSION..."
+            pnpm install && break
+            echo "Not available yet. Waiting 15s..."
+            sleep 15
+          done
+
+      - name: Build github-action
+        run: pnpm run --prefix ./github-action build
+
+      - name: Commit, tag, and push release
+        run: |
+          VERSION=${{ steps.version.outputs.new_version }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: release v$VERSION"
+          git tag "v$VERSION"
+          git push origin main --follow-tags
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${{ steps.version.outputs.new_version }}`,
+              name: `v${{ steps.version.outputs.new_version }}`,
+              generate_release_notes: true,
+            });
