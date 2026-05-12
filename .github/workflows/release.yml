@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -48,9 +49,7 @@ jobs:
         run: pnpm build
 
       - name: Publish main package to npm
-        run: npm publish
-        env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
       - name: Update github-action package.json
         run: |
