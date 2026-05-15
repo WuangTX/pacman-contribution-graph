@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
-import { BreakoutRenderer, GalagaRenderer, PacmanRenderer, PuzzleBobbleRenderer } from 'pacman-contribution-graph';
+import { PacmanRenderer, BreakoutRenderer, GalagaRenderer, PuzzleBobbleRenderer, BombermanRenderer } from 'pacman-contribution-graph';
 import * as path from 'path';
 
 const STATS_ENDPOINT = 'https://elec.abozanona.me/receive_stats.php';
@@ -59,6 +59,9 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 			case 'puzzle-bobble':
 				renderer = new PuzzleBobbleRenderer(conf);
 				break;
+			case 'bomberman':
+				renderer = new BombermanRenderer(conf);
+				break;
 			default:
 				renderer = new PacmanRenderer(conf);
 		}
@@ -82,7 +85,7 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 					.filter(Boolean)
 			)
 		];
-		const validGames = ['pacman', 'breakout', 'galaga', 'puzzle-bobble'];
+		const validGames = ['pacman', 'breakout', 'galaga', 'puzzle-bobble', 'bomberman'];
 		for (const game of games) {
 			if (!validGames.includes(game)) {
 				core.warning(`Unknown game "${game}" — skipping. Valid values: ${validGames.join(', ')}`);
@@ -110,6 +113,9 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 					break;
 				case 'puzzle-bobble':
 					prefix = 'puzzle-bobble-contribution-graph';
+					break;
+				case 'bomberman':
+					prefix = 'bomberman-contribution-graph';
 					break;
 				default:
 					prefix = 'pacman-contribution-graph';

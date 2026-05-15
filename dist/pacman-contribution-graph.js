@@ -1,10 +1,1639 @@
 /******/ var __webpack_modules__ = ({
 
-/***/ "./src/breakout/core/constants.ts":
+/***/ "./src/bomberman/core/ai.ts"
+/*!**********************************!*\
+  !*** ./src/bomberman/core/ai.ts ***!
+  \**********************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   movePlayer: () => (/* binding */ movePlayer),
+/* harmony export */   shouldPlaceBomb: () => (/* binding */ shouldPlaceBomb)
+/* harmony export */ });
+/* harmony import */ var _rules__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./rules */ "./src/bomberman/core/rules.ts");
+/* harmony import */ var _pathfinding__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./pathfinding */ "./src/bomberman/core/pathfinding.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./constants */ "./src/bomberman/core/constants.ts");
+
+
+
+const findBestBombSpotTowardOpponent = (store, player, opponent) => {
+    const currentRoute = (0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.estimateFastestRoute)(store, player, opponent);
+    const candidates = [];
+    const origins = (0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.findReachableBombOrigins)(store, player);
+    for (const origin of origins) {
+        if (!(0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.canEscapeAfterPlantingBombAt)(store, player, origin.position))
+            continue;
+        const contributions = (0,_rules__WEBPACK_IMPORTED_MODULE_0__.getBlastCells)(origin.position).filter((position) => (0,_rules__WEBPACK_IMPORTED_MODULE_0__.isContributionCell)(store, position));
+        if (contributions.length === 0)
+            continue;
+        const openedCells = new Set(contributions.map(_rules__WEBPACK_IMPORTED_MODULE_0__.positionKey));
+        const routeAfterBomb = (0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.estimateFastestRoute)(store, origin.position, opponent, openedCells);
+        if (!routeAfterBomb)
+            continue;
+        const bestContribution = contributions.sort((a, b) => (0,_rules__WEBPACK_IMPORTED_MODULE_0__.manhattan)(a, opponent) - (0,_rules__WEBPACK_IMPORTED_MODULE_0__.manhattan)(b, opponent))[0];
+        const routeImprovement = currentRoute ? currentRoute.cost - routeAfterBomb.cost : _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_PATH_BLAST_COST;
+        if (routeImprovement <= 0)
+            continue;
+        const backtrackPenalty = origin.firstStep && (0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.isBacktrackingStep)(store, player, origin.firstStep) ? _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_AI_SCORE.BACKTRACK_PENALTY : 0;
+        const score = routeAfterBomb.blastedCells * _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_PATH_BLAST_COST * _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_AI_SCORE.BLASTED_CELL_WEIGHT +
+            origin.distance * _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_AI_SCORE.ORIGIN_DISTANCE_WEIGHT +
+            routeAfterBomb.distance +
+            (0,_rules__WEBPACK_IMPORTED_MODULE_0__.manhattan)(origin.position, opponent) * _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_AI_SCORE.OPPONENT_DISTANCE_WEIGHT +
+            backtrackPenalty -
+            contributions.length * _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_AI_SCORE.CONTRIBUTION_COUNT_REWARD -
+            routeImprovement * _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_AI_SCORE.ROUTE_IMPROVEMENT_REWARD;
+        candidates.push({
+            position: origin.position,
+            firstStep: origin.firstStep,
+            contribution: bestContribution,
+            score
+        });
+    }
+    if (candidates.length === 0)
+        return null;
+    candidates.sort((a, b) => a.score - b.score || a.position.x - b.position.x || a.position.y - b.position.y);
+    return candidates[0];
+};
+const shouldPlaceBomb = (store, player) => {
+    if (!(0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.canEscapeAfterPlantingBomb)(store, player))
+        return false;
+    if ((0,_rules__WEBPACK_IMPORTED_MODULE_0__.bombWouldHitOpponent)(store, player))
+        return true;
+    const opponent = store.players.find((candidate) => candidate.id !== player.id && candidate.alive);
+    if (!opponent)
+        return false;
+    const bombSpot = findBestBombSpotTowardOpponent(store, player, opponent);
+    return Boolean(bombSpot && (0,_rules__WEBPACK_IMPORTED_MODULE_0__.samePosition)(bombSpot.position, player) && (0,_rules__WEBPACK_IMPORTED_MODULE_0__.bombWouldHitTarget)(store, player));
+};
+const movePlayer = (store, player) => {
+    const escapeStep = (0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.findEscapeStep)(store, player);
+    const mustEscape = Boolean((0,_rules__WEBPACK_IMPORTED_MODULE_0__.bombAt)(store, player)) || (0,_rules__WEBPACK_IMPORTED_MODULE_0__.isActiveExplosionCell)(store, player, player.id) || (0,_rules__WEBPACK_IMPORTED_MODULE_0__.isInOwnFutureBlast)(store, player, player);
+    if (mustEscape) {
+        if (escapeStep)
+            movePlayerTo(player, escapeStep);
+        return;
+    }
+    const opponent = store.players.find((candidate) => candidate.id !== player.id && candidate.alive);
+    if (!opponent)
+        return;
+    const previousPosition = (0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.getPreviousPlayerPosition)(store, player.id);
+    const directRoute = (0,_pathfinding__WEBPACK_IMPORTED_MODULE_1__.findPathToTarget)(store, player, (position) => (0,_rules__WEBPACK_IMPORTED_MODULE_0__.samePosition)(position, opponent), {
+        avoidFirstStep: previousPosition,
+        target: opponent
+    });
+    const safeDirectStep = (directRoute === null || directRoute === void 0 ? void 0 : directRoute.firstStep) &&
+        (0,_rules__WEBPACK_IMPORTED_MODULE_0__.isPassableCell)(store, directRoute.firstStep) &&
+        !(0,_rules__WEBPACK_IMPORTED_MODULE_0__.isActiveExplosionCell)(store, directRoute.firstStep, player.id) &&
+        !(0,_rules__WEBPACK_IMPORTED_MODULE_0__.isInOwnFutureBlast)(store, player, directRoute.firstStep)
+        ? directRoute.firstStep
+        : null;
+    if (safeDirectStep) {
+        movePlayerTo(player, safeDirectStep);
+        return;
+    }
+    const hasOwnActiveBomb = store.bombs.some((bomb) => !bomb.exploded && bomb.ownerId === player.id);
+    if (hasOwnActiveBomb)
+        return;
+    const bombSpot = findBestBombSpotTowardOpponent(store, player, opponent);
+    const next = bombSpot === null || bombSpot === void 0 ? void 0 : bombSpot.firstStep;
+    if (!next || !(0,_rules__WEBPACK_IMPORTED_MODULE_0__.isPassableCell)(store, next) || (0,_rules__WEBPACK_IMPORTED_MODULE_0__.isActiveExplosionCell)(store, next, player.id) || (0,_rules__WEBPACK_IMPORTED_MODULE_0__.isInOwnFutureBlast)(store, player, next)) {
+        return;
+    }
+    movePlayerTo(player, next);
+};
+const movePlayerTo = (player, next) => {
+    var _a, _b;
+    const direction = (_b = (_a = _rules__WEBPACK_IMPORTED_MODULE_0__.DIRECTIONS.find((delta) => player.x + delta.x === next.x && player.y + delta.y === next.y)) === null || _a === void 0 ? void 0 : _a.direction) !== null && _b !== void 0 ? _b : next.direction;
+    if (direction)
+        player.direction = direction;
+    player.x = next.x;
+    player.y = next.y;
+};
+
+
+/***/ },
+
+/***/ "./src/bomberman/core/constants.ts"
+/*!*****************************************!*\
+  !*** ./src/bomberman/core/constants.ts ***!
+  \*****************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BOMBERMAN_AI: () => (/* binding */ BOMBERMAN_AI),
+/* harmony export */   BOMBERMAN_AI_SCORE: () => (/* binding */ BOMBERMAN_AI_SCORE),
+/* harmony export */   BOMBERMAN_BLAST_RANGE: () => (/* binding */ BOMBERMAN_BLAST_RANGE),
+/* harmony export */   BOMBERMAN_BOMB_FUSE_FRAMES: () => (/* binding */ BOMBERMAN_BOMB_FUSE_FRAMES),
+/* harmony export */   BOMBERMAN_DEATH_ANIMATION_FRAMES: () => (/* binding */ BOMBERMAN_DEATH_ANIMATION_FRAMES),
+/* harmony export */   BOMBERMAN_EXPLOSION_DURATION_FRAMES: () => (/* binding */ BOMBERMAN_EXPLOSION_DURATION_FRAMES),
+/* harmony export */   BOMBERMAN_EXPLOSION_SPRITES: () => (/* binding */ BOMBERMAN_EXPLOSION_SPRITES),
+/* harmony export */   BOMBERMAN_MAX_FRAMES: () => (/* binding */ BOMBERMAN_MAX_FRAMES),
+/* harmony export */   BOMBERMAN_PATH_BLAST_COST: () => (/* binding */ BOMBERMAN_PATH_BLAST_COST),
+/* harmony export */   BOMBERMAN_PLAYER_SPRITES: () => (/* binding */ BOMBERMAN_PLAYER_SPRITES),
+/* harmony export */   BOMBERMAN_SPRITE_SETS: () => (/* binding */ BOMBERMAN_SPRITE_SETS),
+/* harmony export */   BOMBERMAN_SVG: () => (/* binding */ BOMBERMAN_SVG),
+/* harmony export */   CELL_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE),
+/* harmony export */   DELTA_TIME: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.DELTA_TIME),
+/* harmony export */   GAP_SIZE: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE),
+/* harmony export */   GRID_HEIGHT: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_HEIGHT),
+/* harmony export */   GRID_WIDTH: () => (/* reexport safe */ _shared_constants__WEBPACK_IMPORTED_MODULE_0__.GRID_WIDTH),
+/* harmony export */   PLUNDER_BOMBER_SPRITES: () => (/* binding */ PLUNDER_BOMBER_SPRITES)
+/* harmony export */ });
+/* harmony import */ var _shared_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/constants */ "./src/shared/constants.ts");
+/* ─── Re-export shared constants so bomberman code has one import location ─── */
+
+const BOMBERMAN_BOMB_FUSE_FRAMES = 8;
+const BOMBERMAN_EXPLOSION_DURATION_FRAMES = 4;
+const BOMBERMAN_MAX_FRAMES = 1200;
+const BOMBERMAN_BLAST_RANGE = 1;
+const BOMBERMAN_SVG = {
+    PRECISION: 4,
+    HEADER_HEIGHT: 15,
+    MONTH_LABEL_Y: 10,
+    MONTH_LABEL_FONT_SIZE: 10,
+    CELL_RADIUS: 3,
+    PLAYER_SPRITE_WIDTH: 22,
+    PLAYER_SPRITE_HEIGHT: 28,
+    PLAYER_SPRITE_FRAME_INTERVAL: 2,
+    BOMB_PULSE_DURATION_MS: 500,
+    BOMB_X: -8,
+    BOMB_Y: -9,
+    BOMB_WIDTH: 16,
+    BOMB_HEIGHT: 18,
+    BOMB_PULSE_SCALE: 1.1,
+    EXPLOSION_SPRITE_CELL_SPAN: 3,
+    EXPLOSION_SPRITE_GAP_SPAN: 2,
+    EXPLOSION_OPACITY: 0.9,
+    MIN_DURATION_MS: 1000,
+    DURATION_SPEED_DIVISOR: 2
+};
+const BOMBERMAN_DEATH_ANIMATION_FRAMES = 8;
+const BOMBERMAN_PATH_BLAST_COST = BOMBERMAN_BOMB_FUSE_FRAMES + 2;
+const BOMBERMAN_AI = {
+    ESCAPE_MIN_SEARCH_DEPTH: 4
+};
+const BOMBERMAN_AI_SCORE = {
+    BLASTED_CELL_WEIGHT: 3,
+    ORIGIN_DISTANCE_WEIGHT: 2,
+    OPPONENT_DISTANCE_WEIGHT: 0.1,
+    CONTRIBUTION_COUNT_REWARD: 0.25,
+    ROUTE_IMPROVEMENT_REWARD: 0.5,
+    BACKTRACK_PENALTY: 6
+};
+/* ───────────── Bomberman player sprites ───────────── */
+const BOMBERMAN_PLAYER_SPRITES = {
+    idleDown: {
+        x: 305,
+        y: 5,
+        width: 16,
+        height: 21,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAVCAYAAABPPm7SAAABgklEQVR42o1UIW/CQBh91yAmJ7v+g5OcY8kMsssExUFCliCxzTKBRCykFjWGIEECgjCBaEKWtO6Q9w/YSZKZuU5AL71y7folJ+679959330vR2CIuk0TU/4gBUFZ1G2a1G2aTHfLJPn51tZ0t0zS80Jyh22viPnVYVtNxErJ1Amw2DP8F4s9A3UC1aaVHjTfflE1stha/lA+eKVk+2ul7Wt5sv1+B/YkwDdUA6Y5+eABYx/aGwDApDes3EIWqwSoE1QWyGJJdoyD+QiPL+VC27GPSW+oTEXyXqBOoF6537gHAHzEEQAgfL2BOPqaI0kVC5dZ2sqS+YZiMB+pPrvtCN12pHoezEfgGwqjE3nLA2YU/TUvvLm/5sCMgrc8JaJ8IOMQdqMJGYcAAHH0sXg+e4EthRGjteDKE2QcwpWnwgpMGKLKB8DWK23O7DIFfpmCOJ4dmMVb2Rs+7VsdGEdX5BSjVZBPFrVhwtUOUhAX1yL57yvvEVeecJCCEBOg6O8zYf4AxGvpYTg/OGAAAAAASUVORK5CYII='
+    },
+    walkDown0: {
+        x: 9,
+        y: 8,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABiUlEQVR42p1Uv2vCQBT+LmTo2PGa/+CNuS2CFBxbHIybAZeOrqFTR4ci6dipKkVwtIvYwaFQCrol4/0HNpuFLm7XQS8mMU2tDw7C996X9+N7dww5szkpFFgUS1aEw+akbE6qP58o9f2ZOf35RGn/AaklZgeE/GmJWUJmNidFVoDxu8Ax5l2GkCsfBgDU7jc41nSsmQbjqltK4h8vybeZJvGnC4i6RDilDEFjcdUFej4AbEs9xU4mMi1HZ9TF9W1QGjzr+Xhs3yGKJWNpLTujbilRk5KMZav22+pletTTJCuA11zAay5AVpDxZeSwOalwShisPZB1BuFU9lI4FWAZYLDeIJyOIepQUSyZme8BAORkn0HU5RZrAzeprIbNSYUNFxjS3w0OCWHDhc1JmXkfWQGEU8HD826pm0C4XECu/GIdi8hAMSmjY3pIuq/0tEVdZl4BI6/jYO0dtKaxdGVJqa/8HNypbW/K8g1X8RcAoAiPYskM/RftLL2Puxibk2L/WbfS4RyzpwDwA3eo2etvVgkzAAAAAElFTkSuQmCC'
+    },
+    walkDown1: {
+        x: 75,
+        y: 8,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABkElEQVR42p2UsUvDQBTGf1c6OHY88x/cmGwVRHBUOthuDbg4ugZxcHSQEsdOtiKCY3Uo7eAgiNBuccx/ULNVcHE7h/bSXBrb6oOD8N378t5977sT5MKVSlMQ70ksinBcqbQrle4897T++rBW57mnzf4SqekNlgj51fQGKVm4UmnlhDy8emwS/l5EPAkoAexffbNpmNxyFkx26ytJ8u0x/S5nSfJmG68WE/WVRTBYsluHVgAwa/U/UQJ4Od/amGByhRnH6f0lh2fhStKgFdA+vuA9iYXIzlI5YaraSXUHgO54lFaKJ0HqILHOar9ZzxLHqKmcEL8xwm+MUE5o7VniuFLpqK/oTn2UE+LN2wTwqjszbD4S05llgPbxBQBxb1HBq8XF43Cl0kNZgVu1/oC3iuiojiuVLuf3TKvXd3NTNyAaj4gngZUnihQ1gpjIk6w5ZkXKn8tg2VeglJ9jd+ovHa0IS1sdygqyuj+7KeMXDpJPALK49/S4aNVUio7su2iShrJi4eaH4i92WynOJj4F+AFlodcPvNujWwAAAABJRU5ErkJggg=='
+    },
+    walkDown2: {
+        x: 108,
+        y: 8,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABf0lEQVR42qVUMU8CMRT+ShgcGev9g47X7UiICSPEgWPjEjf/wcU4ODoYU0Ymwbg4IgOBgYHE5diOsf8Au0Hi4mQdzh70OOHUlzRpXt/X9/q9rw/IMZcy7VKmccBIHigvcKkkwaEs/dlQ6/c3a/VnQ51bhUuZ7vDJHiC7OnySgolLmWaOwPMrRxELzmLIVYgSANTvPlDUTGwJf7Ry1qFq/mHEfbgPVDUf9OEU/FwiHjMr3vialwI9U+r8+uTXpZaWShK5CjFYRIUADbXBUklCdnvJHIHu5+1RkCW5Y9rMSs9qhyGEOQJBO0LQjsAcYZ2lbzTZ4jHDYB2AOQLcq27Z9KqJ75tVU1najsE6QO/iBgAgh9sM/FwmGVs+8AgA0lZO80r8Tznmjd2npNygDcSLCHwUWuRYrMatRG589JKSAgByFe6xWjagKa2kh1NaQWMnOG75UIs5GmpjswoA1Ksjb28upF4dU1qB9ZFNgAFkb/9xWO2CjbSOqYcUmXB5k+4LCXHPPa24MKoAAAAASUVORK5CYII='
+    },
+    walkDown3: {
+        x: 141,
+        y: 8,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABeklEQVR42p1UIU/DQBh910wgK4/9g5Ot2xKyZHJkYpujCYagsBUIfgCiyCk2gpksCELFRJOZ1bXy/kF3jiUY3E2UK72228q+5NLm+r1+73vfuwNKYVEmLcokjoRRBgXUREBNHAOTMnBfYiI4qf2gKM6WvpTfG23Nlr6sbcGiTF7ZnxVAeXl3XzmYWJRJ1vawWNloEk4vBk/dTJz+4w+ahso1cGKcDGzVbYqL8V7AJYCpAob3Z7hZ/YHo8znsIUf8wTSQPeQIqJlRTQQnPHUxj9aNKA7EFongxFCumF4/wOnFWdXbjZ79wvI95aDGlitbzyiCVE+s7cGZrOFMMvoBNRGPxpr5jXLzAGB3uloV2ulrz8o44lE2Btvv5ooufEBEIWinDxGFugHUOVQRUDOvrpS0398wENuqc4o01PvT6xzOZA3W9iritA4pGP/OlqcuAmpqFQ8Ceerm1IvqJ4ITouQNqJlTFFGo/b32dCjOxcRjoERw8i/nFC+sHSx90I3EuUDEAAAAAElFTkSuQmCC'
+    },
+    walkRight0: {
+        x: 8,
+        y: 41,
+        width: 16,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAYCAYAAADzoH0MAAABZ0lEQVR42p2UPU8CMRyHnxIHRsdy36Cb53YkLIw4CZskxoTBOOtAoh/A4VYmwM2RyejAwAgbN943gG6SuLjVRbB3XMvhL2ly7eX//rSCAoVSmaLzRKcifyZsg0SnIpTKqCCm+fwNQC+qAzBezBlcP+07CqUy5u7RrM8iE0plrs7fzWg6MeZrXbhG04mxM6wA6MWMlt5gR3apF9VRQbzLupLoVLT0BmAvbZfsICd27T4j3Wjvvi+AgV3CIelGGzms0dIb5LCGHNbA52C8mFNWGQezfpVjJfIAFTGQ7wFAS29IdCqEi0LXSGf9KunqYQeTcKXmm4pNoncKKogBWL4pALqdub+JZdTtzNlD2aV09ZDZv07q3N/0/pHBi2J52T7MgasHmRJue24ODk1CBXFmhKVK2E5g25P8q1RxRd5GH392vVkJ388PeYqMmn84/z48NlAVH3m2cdE+lMqIsvi6kBbH3oP8XfgBu12xmgbSwmIAAAAASUVORK5CYII='
+    },
+    walkRight1: {
+        x: 74,
+        y: 41,
+        width: 16,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAYCAYAAADzoH0MAAABdklEQVR42p1UIW/CQBh9RyaQyGv/wbm1riQYZJcJihvJsqRqegiS7QdM1KKAuUk2QYZAIIuj8v4BnGwyM3cTW7truWvLXtKkvfS+733vvTsCDRzKpG49EZyU14i6IRGcOJRJZkfoP38BAEKvCwBY7GJMb59OCzmUSXn/KI+XnnQokzfuh5xvllJ+HrXPfLOUKsMWAIjdFr5IoXY2IfS6YHaUs24lghNfpABwQtsEtcmFOnvVJtEL8vcrAFN1hDqIXgA6s+CLFHRmgc4soKrAYhejKQoFtpM2zgUpB0iXgbIGAOCLFInghJhSaLJ0O2mDH8Z5mIiJWpUrahIrXWB2BADYrxgAYDSMq0VsgtEwxkmUTeCHceH7ddnFw134DwYvDPtBUJ8DnQbMjuC+v/1oMQjgXnNzDuqcYHZUsLDRCJkDOk2MDLLO+xUrUF7TTiGF2iirP1Ov/xfl30tnTTvI7o9ClMvz6lTPxKw8TOeESnuYmhRSXfgGrX26OKISwJ0AAAAASUVORK5CYII='
+    },
+    walkRight2: {
+        x: 108,
+        y: 42,
+        width: 15,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAXCAYAAADUUxW8AAABgElEQVR42qVULW/DMBB9jgoGC93+A7MlLJVKClsFNHBgpOovWDQN9AcMlA5MbcYG24JqBQWFDUug/0FiGGlkzAOZXTcfSqU9yVLs0927e/cUAgA2ZRIAEsGJ+i4jEZyU34hNmYynPkR0wljkYP0lRq8/AICZOwAAhNEZb4+LahGbMpndu9KmTD44X3J93Ej5ndWe9XEjzc6sRHBSZmzCzB2A9Zd6TEsFyq02wSSwcCPC6Awx9DF5Xuq3TluSGPoAgAkAuuoVj17eziyGPuiqh7HIL4kGdPLp5U63dysstTueBrpAYyfzDGKeXUxiBtUKzLWZAj1ZC/A00EapWK7JnnU2tZqCrF8wxnsG814rWBOz43HEe4bP97ASr8x8oF2MRV7bcjwtdu7stkgEJzc7rA6NgqkZnT+vx9EZPA2utOnUJRYihXA8DkRFEZ4GONAuAOixOuV5lQ0dj+skADrRxBUzdUfAhxKH6b+LCfNOyvIrRfWqdtt2wdqcVWemf9nzF67Fws06Dc9qAAAAAElFTkSuQmCC'
+    },
+    walkRight3: {
+        x: 142,
+        y: 42,
+        width: 15,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAXCAYAAADUUxW8AAABf0lEQVR42pWUr27CUBjFf20qkJMX3uDK1kEyg2RBgBzJDCE8wCoQyAlEJ6dgjwATyyYQldSBvG8AV5LMTO1OsHb9u3QnadJ70/Pdc77v9ALgCmlcIQ3/hOUKafaDIToK6elz5YcHraz8ngMkRNkK6C4+ARi3OwA8RzsAnu7mpqwArpDm1nszq+3amI9T6bPargvWbFdIkz6xCuN2B9kKSBewgYLUKjx+PWTWdt3O6uthoaFOHRKAWDahX5OcIVXABghnjQJRLJsFme/iKks+aGWpo084ayQzLVUyOdHT50xYnN/0+IZZAIsdNzkSwL09B/xsPPNhAZCtIBlLWWTj0608MY39q0zevb5iP7g00XvZcNDKcmJi3Iw44+ro4/XVn2MsHZU6+pSp8PqbIvmgldWj3v+cKEQap8qvbAV4P1nfRztGUwrddmK/ot1FR2GSqNH0QkpbyYck41m0u+hJfKP4ldLjsNjxQkdhUiB/QpqUnrtV5fkvFEJSp0j+DvsGRtzJVsVjbugAAAAASUVORK5CYII='
+    },
+    walkRight4: {
+        x: 207,
+        y: 42,
+        width: 15,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAXCAYAAADUUxW8AAABgklEQVR42qVUIW/CQBh9RyqQkwf/4BytK8myZLJLBSBJZpapySEQk4gJJhELdGLJJJsgmUBUtq6V9w/gZJOZqd1E28u1HAS2lzS5fs37vnfveykBAJsyCQCp4KQ815EKTuo1YlMmk14fIg7hiQysPcXl4zcA4MbtAgCCOMLs+mG3iU2Z3HZcue240qZMLtZLKb+2xmexXkpdGdFl371OKhNNGF4k4JsRUsFJoyyy9vQgUZz3EcSRuhIAWOVBL5qIdN7C1W0+YFbUGzgBnshA5y31vkMO4ujoZoocjps4FURfmWnH+r11+angpJKacmV6Ex3huKnWVJlcb7APesIahz4mK4ZkxfJwDKL9htVRkhyfqwANBxFsylREjbKTXm6O8/G+09DxuVLYwB9wlGGsPYXjdpEUweGbUYVsmTp/0jMAwD2AJI7w9hzA8bmqe2AyFZxYh+Q9/UzgiQyOXxj4kpuIwgvLJNcTmZqilBREEYcw/gz2rq1wv/xVGbN9quP/iucv403HnBp4/m8AAAAASUVORK5CYII='
+    },
+    walkRight5: {
+        x: 241,
+        y: 42,
+        width: 15,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAXCAYAAADUUxW8AAABeUlEQVR42qWUr2/CQBTHPyUIJPLGf3CyOEhmkKBgcglmQc02C2JyghDsxDIwS5AFsWwCUbOEuk72P4BKkhncTZTrrqX8yl5ySXPX9973vt/vPQBsIZUtpOLCsGwhVdDuEPkezWhz8MfvKLSye0WAyPeSDVkZ0RhsuavVAZj4S7x+CXBUXoEE9njhqvHCVepnvbfGC3fvagX9cf/2BJB0zAtZGWEWKNpCKlkZAduDSdF1hxbA0CHsZjo3BtuTzIrXK1oPI3JhnxNZNQr8IwoAz93HZGPiL/chf82Ieuv9ZK1drOVfgWyRj6HDpyinHWZqbZokG16/RLhyUo6zsmY5dU/dvRlt8gkL3mWyAG5vlvkPw+watDsAVOezlKuqO9dN3XoKdvEUzHDlELoxmqmbfmGpZLPjsbCFVCnCbCGVSYYJN9jJFq6cFGFHYeuk6cskfiC9MqLWiA/ns5gwUyKzclYinainjnXu7NJK6MTkzpcOP832RQ7LzrBfnle9zbyp77EAAAAASUVORK5CYII='
+    },
+    walkUp0: {
+        x: 9,
+        y: 74,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABj0lEQVR42sWUoU/DQBTGf7dMTCIv/Q9Otm7ISZKJDceSmSmCRSwBiUDU4iiCBDm1gEBUtq6TJ/CsbiQzcw8BV67dYKD41PW9e+++970vVTQQaiPswKK0yv9u+QWhNnJ2fwVAMRhSDIYAnN1fVfmtV26fZyLrpch6KaE2IqcXIqcXH+fP+O3z7Ks41EZOoscq6V9oNpT1Uk6iRwm1kTZA73pTYzDpHjJ5SXeNSu96gx17M/4V/1SYTjskebb3cpJnpNMOAMop6/bnxGkWONyML1mUVil/lyaItxR2SKcd7Ot55SC1z2rfWa8mTjE3AJggZnScMTrOMEFcyzm03WvF3JCsRpigQ+TNGHUPIY9JVhuK+QNRH1mUVrX9LjfjSwDsbJuiHcPEe7UVaiPFYAh3Zv+Ad4ZiMKTyqg8TxDWqAEWeYV/PazG1S1EnSEWzUVTboy9S1Lc01Y76tvYXaDX3mKxG21b7jPnMKqpP+gDd7QFQ5ilH5RsAu+KL0qqW6+KSvzmH2oj6i91+FOc3PgV4B9TS3qWPX7w1AAAAAElFTkSuQmCC'
+    },
+    walkUp1: {
+        x: 75,
+        y: 74,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABgklEQVR42qWUr2/CQBzFP0cQSOSF/+Bk60AilyAARxMMEotATCIQ2DlA4NkEAYGoLO6QJ/AMtyUzuJvY2l1bNiD7JhX9/uh7976vJ8iEJ5XlQuxPRrjvBXfAk8r2FyMAdLOFbrYA6C9GST016Ellg3aEPoT0qrUcWq9aQx9Cgnb0w8iTynb8tbUfr8kz3S5tjDDdLlO1jr+2nlS2CFAfn3MIvUN46ajUx2dM1znjvfH/wdkuutrs9hQBwmGJ+vicFLLKugPhsASAiJWN93ctnrqP7E9GCNcAqjLJKewimeMgcZC4ZrXfrJdSVa8UAKoyIWhHBO0IVZmkajnL6ZXCbxhUZYLviONXa1+5hkGvVMKsmKVijgPM8oY9elLZjSzDXF3vnit0s0XiVTeyVAH0LsIcB6mcuKRoLIhLP6usyP79sUhZtf2GSd0CheweZ29B3qMXcgnVjSwjq3UATruQh9M7AG7ef3n+oRojxfdLsr/vpo0sp/LxB8U9dvtTnFt8CvAJx6DEoCOKVjcAAAAASUVORK5CYII='
+    },
+    walkUp2: {
+        x: 108,
+        y: 74,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABeUlEQVR42qVULW/DMBS8TAGFhVb+gWHMUjIpsNJAW9ZKJVPRaEBB4UBBaNlKJg12A1ULBiKNJMyFBuNJ4KSSMg9MTu3E/dh2KLLfPd87nwNY4BMqfUIlzsCxkXivDwBgb6/V+q4URq2rE2yd+WeCZZZiMZ7JRgOfUDlkGyn3hZT7QiqpT++rak3uCzlkm2oExydUUi/GywerGi2zFABwH3QaCka3HCKPfqSG84OxaSMohPMDxBi4wR/xf6Ka6xz0GhcAkmkL4fxw0hSdkExbxwD4hMqH58erJC7GM+xK4Tj6XVIvbjisnyTyqAqAcyk5dSii4SpfUwAA9WKMBilGgxTUi409w1WfUMnXFOxOgHoxmGYOCzoGWSlz61JEHkGsmhLLSdt+j+Wk+FUArObU5fIshcgjwxxD6vEBR0AWG/LrcNVpW3KcYUva6GrFvNdHmSXoll/NGUkQwvatGpIgxJa0YTxkVaAI9e4nzdHJAC6SjKxeEzv9R/UNBfy0USHon8MAAAAASUVORK5CYII='
+    },
+    walkUp3: {
+        x: 141,
+        y: 74,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABTklEQVR42r2Ur27DMBDGP0cDgYFW3sAwZR2ZVFhpoB0snIZKA/IAAwV5hIxMGgyqFBAQaSRlDvQbpGarVDLmgcyRnT9NNLBPOsWK75c7350DdBRQpgLKFCbkdCG+2YJvtpiC725tmnAlBRl1Mi3JU6WuZ6WuZ5XkqRo8gumY5KkFmRbvv1qYBJQp5sf4+FxgjnYPHKIOm+KsDt+YK+3r4I/6H/DtVNp9LCIXOJR4Xt5PAkXkAgCIbsf+/XUyYhG5EHWISgpCzF4yPx6ssAbMCSJjIzYmDTrWgB8ZAID5MXZPZWsAoPcGq7p4FM1zpEj8yNqsrNvBN9sGTPugfDn3IwaUqYx67UtzrbWWF6zlpZ8qXa7QXeszMj/uFefmRea/jRd1iIx6VsSboO6dmXpAmaqkIERXKaNem6I8FdbXB4dc52w6TkHWyM2ZHPOH9QOrJroE5w6VZAAAAABJRU5ErkJggg=='
+    },
+    death0: {
+        x: 206,
+        y: 202,
+        width: 16,
+        height: 21,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAVCAYAAABPPm7SAAABgElEQVR42pWUoW/CQBTGvyMVk8gb/8HJ1ixgliBLEBuSZG4KS8jEJGJZaqfGDAkSEGQIRJOZNjOtvP+AnSSZmTsEveNKr4W9pObye6/93vf1gIpyKZMuZbKKIWWNALCmdQCAL3YAgFTwAu/YGgfTMQCANlsAgEEcAQDeHp5l2SC4lMnJZi7l70/lM9nMc7KIamaNALMvD5dU/zYB3w6RCk5q6rD98odLy2RzO/iII3RGQWXz5+uwfImdUQD6fg2vy5GsWA5UZ53HIDdESwifri6WYLLO0ZahROb7uVILLATJpUyuzwzxxS6XA8cG/Kdq5tuTFdMpZI0A/V6Efi8CaxycGUzHSFYM1iAld/fHoHy34GUxVpXEEWY30dGV5QKp4ERLEHEI2mxDxCG4WIDPoa30ujxj6prJSUgFJ77YQcRh5Q5MRrtgfr63XGj9ALSMJPsb+fYQIJOvmW9QFmowjgrNpzYTm/dlMmyckwpOfBSHnF4ap1eb2gOxAdYbp4TZA9mI4jenPoeaAAAAAElFTkSuQmCC'
+    },
+    death1: {
+        x: 8,
+        y: 206,
+        width: 16,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAYCAYAAADzoH0MAAABVElEQVR42qVUMW7CMBR9RhyA8ZcbeEy2VOrCGIkBDtALsGbsyJi1U5nYgQGJgYGlEtnC6BukHiP1AO5kk3w7Lmq/FMX5/u/5++XZAoFISJpQ/qaVQCwSkiYhaTbnnTHfX71nc94ZOz8IDgGHiP4EDpGM8M8Y84R+WUYB9LnvfY84ONct6OPJvbvjXLfeAt4W6qNEOleojzKaGySwhelcRXM2BDfOiSZRDXLd9owlEpLmRBNQNoOuLsh1i9V2HQS/v76B14qEpKkXd2HSwz7aAa8dA4CuLo4VAOS0RJo994HVFaopvFpPAzktoZrCqW9F5HNOg9gJ5AShk+kRhNrn2+gSeD5QTYG6ukbBQR9wdbudWDCvuWkl3GGyqlI2c52gKu9jVjdoZRur7RqqKaCaYtBYnojWxpTNPEPVi6VbPddtX8TBe+6X+zP4Gx8NzwePEvGr/QduTytbQVkpAwAAAABJRU5ErkJggg=='
+    },
+    death2: {
+        x: 41,
+        y: 206,
+        width: 16,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAYCAYAAADzoH0MAAABeUlEQVR42qVUsW7CMBB9sfiAjFf+wBvJlkpdGCN1gJF+BhkZGeELyi8AA8IDA0sH1CWM+QPwGKk77kDt2sEOqD0psuO79+w7P18EjyXElW/9KKsIbZYQVwlxtdgtlfo6O99it1TaHwT7gCGiP4F9JJ3mSeTLsDVN+lg5/6wJzmUNen8yoz3PZX2zAWvuUG440tcK5Ya3rgUJbIC2EBgAoua9C4pba5DL2tFFlBBXgmJQ1oc87J0AnzVjOwBAWR9mXF+rzLszB1idCvhiGQDIw/6a63oF3p1BUIzqVGB+mWJ+maI6FRAUg3dnSH820BhHwqN0q869zIjElm5CXJ17mRqlW7+kNUFQ64EYhn8a81XZdwp9W3cJcll73/1RVpHvim+EVA6GptKaSPttn/azpgLfPp+dVOyj2z5vCuVgaAQzZhMIiiEoxphNjJjKgfsanX4gD3sTkK4L5MbzC3QEZBPksoag+CbAJvc9qOheJw6ZLnD0aEsPtfZvVKwyTDYVt1sAAAAASUVORK5CYII='
+    },
+    death3: {
+        x: 74,
+        y: 206,
+        width: 16,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAYCAYAAADzoH0MAAABpklEQVR42o1UoW7DMBB9jvYBgV7+wGwJmVqpZDBSQTu2SiODgy0sLEzh0DoyqbAJqBZQUDKp0UgL8wetYaTxZmA6106cbJaiWHfvznfP78xgWT4Xpc1+kDlD2/K5KH0uysVmVZbfJ+NbbFYl+RuDbYFNiSiOUfDz+wxPnS5kb9haJf+M8Zbt8PI4xUHmzNGdsjdEKAvw12v11/ehLGoHONUT9muBoJ9jvxattsYEBAz6eautxgEZUu62chDKwrhW5nNRptwF79xBZluEssDofoflqmsEkq2KZT4X5X5wISZIYgCA8CIjQX6c/PJRwToAILOtMggvUm3MzzPMzzPVmvAidQDFGBwILzJOIrC+1zFK2iTR001HqUwnVrcRhmyqAup5ebtDkMS1wSGuRl9dxUlNiflxYg2mcoMkVuVbhUQE2iaOrrt6OwbgIfhoHtcGTE2JOuPUCvl1H/mdqoSJJGqFSq/6rBzsB0NF0tiZIuUuUu5i7EwVyboSAeDKeA+yrQIEyQSh8lwCSYG1BKEskHK3BtCT2yaS/fUSNy0imP33SW962n8AdCQ0/3wR/FEAAAAASUVORK5CYII='
+    },
+    death4: {
+        x: 106,
+        y: 206,
+        width: 18,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAYCAYAAAD3Va0xAAABYklEQVR42p1VrW7DMBA++wkCrb6BWRyWV8g0MliwFxhsNBRYNHVwrGi8qEpAX2FSA/0GtWGk8d3QWefKzZ+lKInj73zffd85Ah4MozSm5ntvBcwZRmk0SuPxckL8ddF1vJyQvt/jxH2Qt+89PL0fRjdrP2r4em3S2VEWLi/RKI348xLu/NkojS4vQ3aEl6kdr2cNxbOF61mPzo1SgwWDUxOPguhNuk72VieDCQrSqQwqP0QBPv/2UPkBAAA6lcFONlFAwvTeCqDiGaVxW7To8nKSnstL3BYtcqwgSnpzCGlPmS6FkRzUqWx2ofnaQI0oLVGNaBHF4CMq6pLBMZLL3alslpdIZa6w5HIGKWcYsfJD5Cm5ptApTAi0k81iatygkQJrVCNMZEjeEilj8o0oo2BImrS3OqRKinCgURpJWSoF9VvIiF7WNC3hou7nJps6Rvj63lsh1h5qyfNo7q9o7Jf0D3HLEgh0oL3lAAAAAElFTkSuQmCC'
+    }
+};
+/* ───────────── Plunder Bomber player sprites ───────────── */
+const PLUNDER_BOMBER_SPRITES = {
+    idleDown: {
+        x: 305,
+        y: 5,
+        width: 16,
+        height: 21,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAVCAYAAABPPm7SAAABoElEQVR42qWUoW7DMBCGf3eZFLBJhSkYCBgwdFjLFimgAQPtY3SopQEDHS1aH2AP0MIEVNpYy2YYMBCwSQksNKiUge4SJ3U3sCO2zvf9dz6dzWAw4fDS5JdFyto+ywQO4MJoDsq2kKXDBAohzAKyFiIRS4fPgpSEzmUt0sE/rdED33mq9u60GZgt9JuE1f6kgnHC4U6PgBdweAFHtjgKjhN+UkElsEXWyKZXQIKm2OoKc7sHV3EA6TFTUgNeUGd21Qhze49I5QAAJhxeroYp0jcfABD2u4h3e2PD9DN+94pxwusKIpVjbvcQ7/YI+12jAMGRyrH68bH26M7tXiOjDhKsj/YFDdG98HFZKLwcPuFb140qbm9sfHwpRCqHHnu4sh47+oTRGqm8kTXe1U1rx3YAQMrjkNM6gFuJEEzvpB3Lfnu+f5ksUsaEw8uJGAEAlnKN902KhyA8eVhSSjxvYngBhx7fGOWJGMELOGbDuCqR4NmwCZMx0z+wlGtjyQST+BYZLFmkDA7KAVxIKSuR9vdFfdJhWaSMnfsHzwm0z78BuJnMLUIpRL0AAAAASUVORK5CYII='
+    },
+    walkDown0: {
+        x: 9,
+        y: 8,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABTklEQVR42p2UoZLCMBCGv3QQSGRPIiOD49wxg6ASHgOHrryzuHsMToLAg2NlZGUrkXU90UknKaHD3apk83+b3WwSRc9MqhsiJpVV/nzUB96ZYowJIRFIafwAykEx4GFXES4USGXV6FUIaDUCpDQJ/7SuxkX6xXQ3LC72IGQhCDBbag4ry+akA8D5Divb+RKAC0UgvJ1tdOxrlUl18zl+AyCvy8FUfV2Q6u1Dc7zeo1A2nwRryjXeRcvmkyjoIJdV4op3juP1HkT253lddgcU9NHB/q5u3K8/kcoqd/xbsyavy4cd87pka9YAbE4aqaxSJtXNYWWZ7to+bs0aESEb1y1YjzHG8C0/3M6WYt/Cyt3VWD/75utGscXYs+oHVbHH68MxSCqr1CuvP/YLJEOi/nfxNFV3oWdLHb30zt+1Y6iuZ/4k+Bb+MFavHEqs/l8uArn/P6LtpgAAAABJRU5ErkJggg=='
+    },
+    walkDown1: {
+        x: 75,
+        y: 8,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABSUlEQVR42p2UL3PCQBDFf5eJiEQGiTx5OJCdiSCyfIy6aiS1df0YVIKoT1xXRkaCRMalgl64ux6ZTFddLu/t7ts/pwjM5LonYnJplPudhoQ1C4wxPkkEcnrXgbKkGOFPVBEqWuTSqHQqCbhhBMjpE/5pg8an/I3F6zi4fQeh9IkAy0Jz2DRsT9oj2LvDphnuEoCK1gN+fzXRs4tVJtf9PpsDsOvOo6m6uCHVcjWDelxjuZpxrK93jbvuDPUvecSO9XXIKr2Lx4tondgINoAtlNdH682NbM+hfhXOaUXLPpt7EXfdefhn51WZXPe25MtC82KeERHKrLsRuwxjDB/yOfRxe9K3dqxZEOtnaC4uHYYXqKR9uFahUxVbXpccI8mlUWrK9sdegWQMFD4XD1N1qxYb+mWh/Xa4FQu34JHeZNJzETmrKUWJ6f8B6XaqqsKyGRAAAAAASUVORK5CYII='
+    },
+    walkDown2: {
+        x: 108,
+        y: 8,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABVUlEQVR42p2ULXPCQBBA32UikJWJREYerriKCirhZ+BaWSS6jp8BMojOtA4cKyMjiUTiUkH3uBzXDNOdydzmbt/cftyu4Q6xWdGqLk1lANI+I18OTwXl/sQio5WmMmkIjBlire1AIsLou+rsGYViQCgiwo4aaSqT3gsBFxsBMtqEf0oK8DYpgZLha9yo/risX817FwSYbQvWVMy2RQdaTy5760k3OTeuHj6rqO4nB8DYrGiXg5zF+dgb03KQO31xPl5d9Q9CeXl8AKDcn6511MIvB7kziIlC6lkSO/T/9VNIk5Ro5mIx+h6E5wnQqZ9/q3/TmKErm3vko+fCGWiSQmhH7WAyWmOzop3bKQAr2fSWRMEd9W0/hg/eL7qu0lTGxJpXYYVCjxzY1/1zO0VEXFutZHNNjgJaI/+hKxTqxh8Zvmg8f+2bvgEVy+bdMXba6nc0AvwAu7+3SNwDlHEAAAAASUVORK5CYII='
+    },
+    walkDown3: {
+        x: 140,
+        y: 9,
+        width: 15,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAXCAYAAADUUxW8AAABSElEQVR42qWUIXPCQBCFv2MikMggIyOvDv4BSPgZOCqLRNflZwQJojOtA9eTkZFEVuJSkdlwt0k6MH0quby3uX377uBJ2DitbZzWANEQYUi8H09Zzia8fFFHfaI5CdbaQOSc40zJ7naFS7NmfGGfSEOKuKow0TNCoOE4IKYe8Q+0Pb8ujiTbY4dQvofvn9VbV7w+peQUrE9pQM4X97V8UQTfgm0n25Dw/VEMGta6beO03o+nzRj+mK+P3e0ahkQTfCxnEwCOl5/2J8YPh4iFqOELB+OpBRpiotE57vu7FNCejCTLG7tiTtIhyFZ3tytzEoTfiiWWOp66RxmRwPi59meosbErADJ3aOZdFcb0nV//kGTu0AoFmTvcT5WriqDImbI5OSpZurWo7/ZoRtEV6ufOtsVJv3dZ08aZR+6tvqKtYY9efr4/AL+K1aQg8bD1tAAAAABJRU5ErkJggg=='
+    },
+    walkRight0: {
+        x: 8,
+        y: 41,
+        width: 16,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAYCAYAAADzoH0MAAABgElEQVR42qVUr3PCMBh94SImkZ1ERga3ObirADn+jDl05GZx/BkgQXC3Oer4ZGRlK5F1nei+kKQp425Ptbm8l/f9FEhAZ6pNnVNtRXwmfQLVVuhMta+Y3MS07shEQIY2FhI6U+1lpnAorjBNBSYzseeCCGeUTkQC6JHvQWsNEIAMLdVWSKqtML/WYtuPQPqxn1F2AugLzLNPAMBk3f1PcxUm8XKyAIByA6yOe7zrt4C8OipcTtYRGSN2MM0Vyk33wm5hsaU9iKjLvgd+yFWBHXw8PQMA1OwLk/XNIp8DgGmqXl9Itl9uLOz3PLjgk5cvYywxdv+H4gqToZUc9184FNdALKjCENgyO/GJQRK5NDG4sUxTwTRV4MIJcAXi+FNifhJNU4FqK1wZTVO5CnBOuLH879jFQCOFzcJNtaV956JItPI0v+0Af6x9F7F910iDk5dYLPFSGd0TiC+nNpJ4dJ0NicgUcbewbh78qUyttVHqVb+UQ4uGOeJR60Oh/DsHPyw/15lZ2SzeAAAAAElFTkSuQmCC'
+    },
+    walkRight1: {
+        x: 74,
+        y: 41,
+        width: 15,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAYCAYAAAAlBadpAAABoklEQVR42o2UL3PjMBDFf8oYHCz0QUPBDWuYMxPgzhy5fILiY8WGVxp2H8MHE5CZwphZ4IBYDWMYGKYDrhQ7Vpq+GY+lHb23f6RdRQSSahezm86q4T4ZHjadVZJqtyC7CIn0RGMgxQ1FlKTaNblmW58oz0c80ZMm3o3hQIvprEqACfEziAgYIMUlprOq/AjnOtR7ULEi/ZKfo0PL9DWss5f+P1/pniypds3eAtBuYL3TQWCZvrLeaarCst7pkejML7Y/lrSbXrkqLH/M377CA49VYadhS6rd72/fAdD5G9lLHxaAtwOU5+PYsw9Z52+TggyJT48PNLmmyXWwz/gitvWJbX2K5xxDeT6OQn16fGDyPO8hCNRjgcR0Vs1Xl4LdwoKM8txCfSNsX+l20++rwtLsLVVhOdB+CBynV3X9SLw3EQnNsCDjQBvaM/GL+eryPP0h/8ZFhINpJ32tPhsG156vB4K62XqRaXI9SaIk/70/49w/3PszwXa3JYd534LprFIxYrO3zFc65BxmGIwEZ7Fc/D0PJ4qIjPbB81fGbqxo/wGMrdCob5yBZgAAAABJRU5ErkJggg=='
+    },
+    walkRight4: {
+        x: 173,
+        y: 41,
+        width: 15,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAYCAYAAAAlBadpAAABnElEQVR42p2UK5PjMBCEP6UMDi7UQUPBCdswpyrAW3Xk8jOOLTbcpWH7M3wwAalaGDMLChrGMDDMBxwpcuzs44boUeqeVmtGiokQbbqpfds6Fa+T+LBtnRJtugXplUikB1oLmi4mUaJNV2eGbXWiOB/xQA8aZbeWAw22dSoBRsCPQkTAApousa1TxUXOrdTPQk2Z9Ed+Dw4t9WuYp8/9OF+ZHizadPXeAdBsYL0zgWCpX1nvDGXuWO/MgHTmJ9tfS5pNz1zmjjf7t3c4yljmbixbtOlefvwEwGTvpM+9LAC/D1Ccj8PMXrLJ3keGxMCnxwfqzFBnJuzP+GJsqxPb6jR956kozseB1KfHB0bl+VkEgmpIkNjWqfnqati9WJBSnBuo7sj2Tjebfl3mjnrvKHPHgeZCcBw/1W2R+GwiEpphQcqBJrRn4ifz1bU8/SFf4yLCwTajvk4mG933rbUhMxCyjhrjf36T2RRItOlis77VkveeKpZuW6dUDKz3jvnKBJfD33UBxW4H2f4e/n3jn0REwjoGhsxflX5r2D+I3dBkXCAzPQAAAABJRU5ErkJggg=='
+    },
+    walkRight2: {
+        x: 107,
+        y: 42,
+        width: 16,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAXCAYAAAAC9s/ZAAABj0lEQVR42o1UoXKDQBB9xyAqI6lEnlxccGSmgsjkM+KiK1sb18+gshHMBJe6O7kSWWRlHRXMXg64hq67W97bt++WVQgEJboP3duO1fQu9gG2Y0WJ7nOkNzKiAWwtkKCfEilKdG8KDQDIGoaABThTYS2uaB1JLImPz2/8J4gIsAAS9LZjFduOVdYM0paqhyL2e7+iHQgwJ9gkrwCA9Dics6eh7UhMrEqGqRlVyXiz7zPw/qwdUMAAEAmYmw3a01BBSKy1IyLJ+aFEwcvDIwBAFxekR4yqSO7552s2FxElujc1QxeXUVIqCRgATKFhCj26i3x5SxF66mgJJLK36xW269XfBO3pPknWcDA3M9E3qip5ZqgpNLKG3Si7ZxRwjhQH2iFHiv1ZO2UypVMlavr7HmjnkjJQcjf9kRyBvwdypCAi9/HSXlD3lomQiZoD7Zwq58EUXJW3neC3YuphvMUjKaSmlX2wtFCVjP1ZzxQFTfRJfA98sO9PFFqWV7QjsKnZnX2w7Vip/2xkmRPZCX7RX/h93PRAPh11AAAAAElFTkSuQmCC'
+    },
+    walkRight3: {
+        x: 140,
+        y: 43,
+        width: 16,
+        height: 22,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAWCAYAAADJqhx8AAABj0lEQVR42pWUoXPCMBjFf+EQyMkiKyNTN1y5Q7C7GfgTJnHMIplkjj+DSRDcDTdcIyMrqUTiOlES2jTHxnfXuzbte3l97/siCJSKZBla14UR/lo3BBoQ38iUqsBaQ0TpEwkLzlIJQHIwDIgdsKVCa37IHUmXB0spBRqIKHVhRNdKSg6VvHu7h6ql4IccRZhgGH0A8LaHZFT9csd5sDdke8NmbFjrryB4urv6dAUDdFQky83YsH0dkn9CPMeRaK1bRPZ9MIXt8YxMv4nnzV2WvT4Ai8up1RcdKz/vNWXbXSwYIEslWSoba526NJl+Yw5D9+zX9nj+OwXfJCt72evz8vzU+tYpyD9hupMsLic24yqRei0up7ACXRiRjGSjiVY7zTtb/NlYXHI4VmS2lV2M9cFRSrnM/c70kxD1SbQf24Hxwf4gOYJ7Z8C90oURrpXr3WVrpibuApyxA2JmaoKKZOlSWO1eGgdJ/X6tv9iMDclINn4z6IGdyFD5Hj3kQba/KbBgXRgh/nugWo9svDaJX3TfzZjLJgbWAAAAAElFTkSuQmCC'
+    },
+    walkRight5: {
+        x: 239,
+        y: 43,
+        width: 16,
+        height: 22,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAWCAYAAADJqhx8AAABh0lEQVR42pWUoZLCMBCGv3QQyJOprIwM7nAwg4CZM8djnOMsEuTxJmepYAYcOCIjK0EicT1RElKawtzOdJrsZnf/3X8TQUS0VGVMb85WPOo6Mac+2T2Y1pWzMSApHwOJNmfn2EBhDHsKH6QTGsPMbaK1BgNISnO2IonV1pY9JjUEe4oGiqFc+nU2u+t7I3UPoKUqjxt7MwCmQjGUS6a54ndsmeYK8iYCX0JvpChWcNzYqknG1DL/jm17CVqqctFNsbuUbLYFYNK9Ms0Vi27K+iO9HT/FEQCowbZhXHRTv568v3EcKI4DVdMnYf0Axar6z68n5td7xvXhwvpwec5CTMIgAPNdfZ+4Bj4T18A+GV/6s0a174HdDWmbSse/G7Bw0DyN8+up0UiXzSF01IYU1y6TG5g+WS2Lu0Cxqy0cC8WKatr+KYmjzjk/Nsx9fTJvCxuZAPzkE6+c5qoxzsYYvsdrX14oQktVhjXH6o0x4850zNkKJCWm/mC0BQmdzdkK8eohffW4/gGdV7r5dAGLnwAAAABJRU5ErkJggg=='
+    },
+    walkUp0: {
+        x: 9,
+        y: 74,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABkklEQVR42pWUoVLDQBCGv8v0AZCRnDx5dY1rZxBlBtM+QTUuogaegTfgEYqDutYFx4mKcz1JZCXuEOmll0sYYFXy3327m83uChLTufIMmKmtiN9HKVAgqXB8TBUA472lQEKOjx1kASqQ3OtF6/Ht/dSJeK8XFMg2gAiQ1vqSljFUOEIG4cwYA0CFu6Ta+U6t0ehBPcA9MI4WLM2oA8bAZm6RZaO7J1huoTKuKVIKVrgeACBL+Cht6yDAoxRyT2D3M24nV011706o6Q5ZwgbLchtFHILC77idXPG2nwExrPrFCZCa7pqIZ0cuuZelYAwBqOmu1wwAmamtWG5V70CWtIWKbblVmNqKNuL4RvGbde7oXPnjCu8PeJ0rr3PlX69n/rjCH1f41+tZq/tDo+lc+RHArn6ANcALBZLHLwdt+p/txDyvH87ay3Cvxh3yk4mh4U3BtHdNbYX4y/QPbYHsJ8jUVqTrIr7T2QCh/cKkB30zt5fxOsNZeAjzNvTTgxbu6Fz5XnE286aJY0u1XnH+sx6/Ad95zsZS3ogEAAAAAElFTkSuQmCC'
+    },
+    walkUp1: {
+        x: 75,
+        y: 74,
+        width: 14,
+        height: 24,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAYCAYAAADKx8xXAAABeElEQVR42qWUsW7CMBCGP0d5AMaMzejRbLAlUocidSFPwMzGg7DxGLABQyXY0g0PDN7wmpE3cIfUqUmsFqk3Oef77s5/zhb0TGXSETHdGBF+p31gSk6N5VJIAMZnw5QcMlyYIPXQlBylFFprAA6f94eKSzVv9zKcbowQIdS1pTU1Ft9BbC+NnUcphULxmw3AsJq3ftUBuNE7ALZvhnzV+uwaqiPU2rJU8y62O2ONHQBAL4HsVE+BB8iuwZxLZpNRq+77HVmcyFewxVAdg1ZjkP8ds8mIw7kEQlgOxfGQLE5txe9EtheX9MEQApDFaTAMAIlujKiOcrCRr36ECa06SnRjRFdx/Cr5yx5iVCbdbYFzV5zKpFOZdPuX0t0WuNsCt38pO7+7tj6VSSdUJp0f4HogAdEJ2ujdUNXYeMWSitjlDeEYpBsjxDO3P/YKJM9C/ZgkfAH8+Pm1b/vyYbpXwMNJmCUEYqKFlRPfd43tRAjFCH3+vv5LnC/VmdRLkE3HiAAAAABJRU5ErkJggg=='
+    },
+    walkUp2: {
+        x: 108,
+        y: 75,
+        width: 14,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAXCAYAAAA7kX6CAAABcUlEQVR42o2UrZLCMBDH/+n0AU7WRkYGd3XtDAJmzpTHwJVnuHOH4zFAUsEMOHCsjKytRJ7ric6mm7Zwt6bTzf72O1EYiE1Miwmhxin5H08B98wAAGYXhxS6UyZopYOYoRQa1lrs6IDj7dFnYG33hQURAQlaapxSEmLZ0QEAsLZFmC4RAOCKuk9VyhCQ0RkegUSEK2r/zzXKjAKQgf3CYSMMVhUbYBpkSJehwb10XYfnfXQAUDwGCR0/cm9gsrPXz+YGKTSuqBFJqN4C+Aobo38K7+h+cr7+aGR0e8BkZ5js3EW/PbB8f+ucCglAhmSarB9KNDUvXWLUpOHeRtQ4taoMXgk3aDbv7SKbmHZtC690lxz1tmuUu+QBNBoHrxjv6CvhccRyeflguPD7hcOwnJgap/iu8QaBwt3UJYCqP6fGKfXX7V/bAnnyie9q6e+rBxlIobFZHIO0ZENkxEhCz4yn3iX16oEaOuI9/VeNz166XyietEPwUZThAAAAAElFTkSuQmCC'
+    },
+    walkUp3: {
+        x: 140,
+        y: 76,
+        width: 15,
+        height: 22,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAWCAYAAAAfD8YZAAABcElEQVR42pWULXfCMBSGn3AqJpGdjKwMjrpyDqLI8jOYqp6cntp+BkgQOwdccURG1lbyD5iApJeWj+11afJ+9N6bKDowcXLiDmzjlFxHt4iHLAFgtHMApOjzgZiTFIkkMUVTUbPeH4PgwhStOAZrLcScbONUJInGGAyGd7vqESVSNMScolub90gAxlzcu/8MYK2lou47XYh3C/ZtVyxzx1fZfqs/Yb7xytdGSlZ5mTt0eSZ46FKKJCFFRd2SJdHtJgAk2bYnMpqeBSpqBjKGJM7GQ9xuEtY+zeHHhZoMuspJtiXJtqz3R2bjYRCRAh6BPJomQUSXBIFHGPgBSdHMN0nvwCOBSPavsnWI5qNK6LJNCKDkaMoB+Xh5DTXoJvLVVs+uoccyd0HkqlW2cUre1RTNwhRhxhemCN1YmIKKGts4NbjlUlGH4fd4m87aey3H81n0LunKWRJTNMvc9Qi3nqs/OUt33w3bOKX+8wB2H8FfO7ur+BAfa5QAAAAASUVORK5CYII='
+    },
+    death0: {
+        x: 239,
+        y: 175,
+        width: 16,
+        height: 22,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAWCAYAAADJqhx8AAABfUlEQVR42oWULXfCMBiFn3AqJic7GRkZ3OrgHMQ4ZwZ+BlPVyGnU/gYWxM4B1zkiIyOpROI6AQkpTeGq5uPe9+b9qADQuWq4wtRWxOsY92emtiLTuWoKJAAVDr+ucBxGCoDh3lIgIacB8PfJaQZercJRIFnoWYi4+Tux+TuF9ULP8OIewVKBRGt9s2tMuPjoLKMHWms0mmfIUkmLI3jcuwhJ7COuPyyyvOy7Fcy3UBl3S6B3EC8qXIcIIEs4lDYIxSJZiuxWYPdjpu+vl2p8nlCjHbKENZb5NuEgRfYlnL6/stmPgVhE9VfBk9Vod3FwFXSJu4OUQEwGUKNdq6E6Aqa2wluKIUtCQmPMtwpTW9FyYGorhhP1tHGGkxsZQLS6L2qo75e38Ay7H7M8H0Og3j6Iu255dhCedewMUSeJOleNn8Sf302YygLZIt+3fZaK/jWR+LavksXrKaMxJvndmdTIxSBlK+Vq/WFbM+A54n4j/r09gq+GeGTvEdHjH7yMv10HhrOYAAAAAElFTkSuQmCC'
+    },
+    death1: {
+        x: 470,
+        y: 175,
+        width: 16,
+        height: 22,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAWCAYAAADJqhx8AAABjUlEQVR42p2ULW/DMBCGn0QBhYUda6ChxxbWSAPLNNKgweEOFe837J8UtgGTWpayGgyY1WMrHCzzQObWSVxt2klRTme/9/X6LiIgciRsyK4OOurakhAwI6XGsJsIAK43mowURtiuo8QHZ6RIKVFKAbDafrWizeS0ORthnZN2BlKe/wpejgaXkX9WK9MuwUXvOpPIUCtO5aiDjpJgs5SixvRALouLTfSBiztNOm/s5hXKCmpl6GYaASzHuV0dB9SYHhDoOBJkpBSDI/cf63MJPti8gt7kFDfDho2HL8RkTTqHBZqygoKrNv/7J6x9x+6fsMtxbu3j1C7HeUv377g3k5wZ0CeHxc2Q1baJCrD6ycYEmIhDLPhgADFZ9x6Vk9hxXlaid5jOzw30pazEidJWBte3gt+keycKTd/iTqM3+amMshLs3nQPrA46ip3iPgeAhsqyEszktDVQ/kQmoZmXI2Ffjp8t+/NtQXapib8tEzfeXb23D/iHxP8FO0x8adf54o+20x0m+utCvbRYvwEe6M6uyA/L8wAAAABJRU5ErkJggg=='
+    },
+    death2: {
+        x: 536,
+        y: 176,
+        width: 16,
+        height: 21,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAVCAYAAABPPm7SAAABb0lEQVR42o2UIZPCMBCFv3QQSCTIyMjgwJUZBMxg2p9R17Mn0bj7GZxhhjpwPUdkZeQhkec4UVLSEo57qrOb97LdvF1BAHqorqG4OVeiG4u6RD1U1ykSgHV/xClWAEyRTT4o4IiZTlo37L8uzXemk0bIxYRP1lrfyzWGEnu/PZAz50r0eAKtNRrNKwQF/NsdulUEBXzidlEh8zpuN5AWUBqLa3BQoMQ+EAFkDqe8aoR8kV6IbDdQHWcsJ4P6JVYXVHxA5rClIi0CFYTI7gmXkwH74wzwRdTzJjqyig91BTdBGzgbhWzrkwFUfGgZyjdf5BzmSvIhc5qG+kgL1Tg28m06nquXxhnPVcvu4tn0rfsjlrtbD1Yz3n++g9Mpuv/k1D/MZ+uwH/fHWnSnscQGbetc6s44kQcnArwt9qRF+9G2i4qyUA8zEvk9yHRCphNk3rbrFInM73mfE3VXlTGmmQEfdlPnuutN/GcX/rUbfwEjELpZrMKARgAAAABJRU5ErkJggg=='
+    },
+    death3: {
+        x: 105,
+        y: 206,
+        width: 20,
+        height: 23,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAXCAYAAAALHW+jAAABpElEQVR42q2Vr1rDMBTFf9lXUYkscnLy4tgjTO4VkPUYJsEgcJO8wiQWV+QViMrKVSLrgtgSbrJu419M2iT3fPeee07iODKkmnlODO1bN7ZeHAOaM0VEuHl8SPafb+9QVajwp4ATwLpaeP+Ol2oWZ/vt3/F1tfBjVRQ52Jwpi3KIa90To9+LcoBhChXeZulywPvyktWwBeC+vNwFX1/w8vYBEPfC/mrYJmVP8pRtwMtQJv+rYcuc6ejZg5Klmvlalqx1E4NEBEG4et0AUMty3+Ld1NCxj4llTyx3AUxEaOgAWOsG7VunfevWuolAIkISs2+Qy6USgLRvnVQzn8sirB2LiRyGzGJZRzRm12pZxkwPmiIiSYmcGZaCEAtQBP7+OubsNJnI5rvZjWUZhZ3b5yeAY5dIYRuyz9J/FzRoF0BVaeiYaN+60PbYuTNXVw4WtJnIRlV/3eUQm1ivoQMlWukUn6GCWpax1APAqHj98mwObIEsb9YtRSJs/crUuiYAJy4yYCJCo116HwaS7cHcBZYvC2Z5d+ceptxFlq8x7br/fvU+Af65JJ4LToNfAAAAAElFTkSuQmCC'
+    }
+};
+/* ───────────── Bomb and explosion sprites ───────────── */
+const BOMBERMAN_EXPLOSION_SPRITES = {
+    bombs: {
+        fuse0: {
+            x: 0,
+            y: 0,
+            width: 16,
+            height: 16,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABSUlEQVR42qWTLU/DQBjH/y0VfIEm9wVIOMdhIHWbrEMRJqmYaLIEvWUJScMHIAyHxdWQgCzuMkwrIDkxUdmGIOpGgjjEdtfXEQY/dS/P/3n+9/IY6IARJrvWkzwxqjHhyS6MTiFxQCkFAAghVps5ryWbTV3Q/Qg7NTFx4J4PceoN8flVoHgvYNs2Pt4e4I4C7B31sXiJMJu6yBYFvMu0FLMDX46vHmWWxTLLYhlGSzk4u5GMML3OCJP8dizDC18qt5ZyoCwr4nmkx4fHfXABTO45/IFTizOVdQUXFFxQpK9pK1k8j+COAtCep51b1eorUVSrQHsenq4nAAIdI57vAOIAOS+PoKhW1hBnnaScKyz1VM07UOhnJE7nvtkK7BL/gLWtoOUgyROj+ct+Rc6R5Ilh4p+Yukm2cbGuDmBzM20SNrvS+Gs7K74B0DebyxOmawAAAAAASUVORK5CYII='
+        },
+        fuse1: {
+            x: 17,
+            y: 0,
+            width: 15,
+            height: 16,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAQCAYAAADJViUEAAABMElEQVR42qWToVMCQRTGf3vDH6DtjMZrLglpEK9rsDlEHGbMx5gY/gBGbY7NRoSIbSGxwbDBQGQjzfgMcMfCMaPiV3b37X7ve/O9fXAE5rVLAVCHLnWsJTxbb1VIPNGwslA5SIrr26A3pWSnV2uy2iHGdZIkAcA5B96QdnoAjAddnh5Slp8rzqdzqrOpKoj6oi1ZfyTDyZdk/ZHoWEvWH8lyORcdazHPmQzv2xJWUZSdXqfc3Z4BDmgyHkC11sQ46L4Z2jf1kjeRjrUkjdaum7NJaU07PfJ3uXqhvPhY8Pi63SeNFuNBF+gVMff+sjbTGwDUvlEhctMK5F3wBuutqoQPwwTOOUpt20OlpPQHRNZbtVPaT9iUDBDxD0TF3/2NeqBaGoyDf3tD2h+Qo6YqxDeExZNgQsVqAgAAAABJRU5ErkJggg=='
+        },
+        fuse2: {
+            x: 33,
+            y: 0,
+            width: 14,
+            height: 16,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAYAAAAmlE46AAABJ0lEQVR42p2SoU/DQBjFf236D+BO4yoQh2J1m5xHMDtFmixBb0Et+wOWAYI0OAxpUJvsXEGtAnGCZJOtxIH7EF27NXQs22fuu8u997539+DAWl43BMA5FHRyCUsaUgvUSkvRJ1li1d1xagHKyw+yuEKSnbXgJeL04c1ytkFus1uSmHlAuzcEYDYecHfbJv38wn/9qSp1ribSH00ljL5FKy390VTSdCFaaYnv+xLe+LKtXhn1/KKF55qyjw0MnmP8jvfHo62VltITMHlKAVi8R+Xa7g0pbBSqFcXwMQDAbXaZjQdA7nH1scLMg/zRsrg6qjEG13U3LMpbgzf7nd9hjKkaUd7OMNhJlliF/N7K4jIQNkeWXcZqn+qWGoD1b+TWgLrMWseG/BdvqH5WjjsArAAAAABJRU5ErkJggg=='
+        },
+        blastCenter: {
+            x: 48,
+            y: 0,
+            width: 16,
+            height: 16,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABX0lEQVR42o2TIXODQBCFPzIRF9e4q2skouIsLvwDJhOD6zBV6S/oZKL6CzJFMnWYDFOHJC5TVUQEkkpcLI4KOCBNyPSpY3ff27d3i6GkqmiQFqkBoGNJKDjtYPFZXs0DjADiNCAJBUqqSicjR1CaPtMlBA8CTVRSVUkoiNOgExDZCtstQVqYcw+A6ZIWd6o5SAukhe2WiGwFQGdJWpimyexxBkC8XZ+PIC3OUBxIi9QY629Nfnm6byJv2O666zyAse5+DebcI8uy60xpoaAa92P5Mef9ozv/ByN90J3yY96SB7s3IwOcOcj2wc159eX1a0b9ROSIuuAGWddk+2YP0iI1dGKy8UnCAZHiQBLWNZEj2s1sHUw2PiJbcdoNGzjt6qWbbPw2ZujVzF/B+ylvv3vjLHIE0yXYblkL9N/21o0vnj2+vxLi7bpz0C9sxRohTeyvd/+vvBC4EPqDPlHjF21il6TcejMoAAAAAElFTkSuQmCC'
+        },
+        lit0: {
+            x: 0,
+            y: 18,
+            width: 16,
+            height: 18,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAASCAYAAABSO15qAAABPElEQVR42qWTIW/DMBCFv1QDgRsLTKHBgIuqsBSWViOl5v0BU2C0HzAeWjJNZYMr84YaMBDYwfyEsA60tnKJV9Inmdzde+d79sGNiEJBnehTKF639ah+MiTqRJ+WmxKAKo2p0hiA5ab0+aCAS6jcMJsvALjX5wMwmy9QuRndcOICrtP0cQpAsbWsdh2rXUextSJXpbEXiYRikkFrPSFTDQC2UQCU68zXOE8inegTSSadaS3LTelHOXx/8vFaEKoTAkopmn1FlcaY307UupjKDU3TeIG74bOo3GD2FcXWihHMOvMmin/gDDTdDKWUMKs/AsDx5wgwvsH0Bd7fDqy+zmO4QpDEECYAx2d4eEKqX4hDcj8vntEb1zN0CEFuLXVbR97EPjnU6eoIoSW5ikv30TaKH/kPcdjw5nW+GX8GK5onNZQU+wAAAABJRU5ErkJggg=='
+        },
+        lit1: {
+            x: 16,
+            y: 18,
+            width: 16,
+            height: 18,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAASCAYAAABSO15qAAABKUlEQVR42sWToXLDMAyGP+cKAgcDU2gw4KJeWApDy0rN8wSBeYLx0NCywZb5ihYwENjBPEJYBrb4bCdbwcD+OwNLv35LsiRYgUrUtGbvhk6EtigMVImairIGoEljmjQGoChr618VmB0y1+z2BwCe1NcB2O0PyFwvMoxmw/zS9nkLQNUajueR43mkao3na9LYighPMclgMDYgkz0AppcA1KfMcuaeCJWoiSTzOzMYirK2pbzdLry+VKzxPAEpJf21oUlj9MfocWebzDV931uBTfgtMtfoa0PVGq8EfcpsE10sMnCb5ZYAcH+/A/yegUuES3Bfwhskq+wIhcEhJ+qGTszfskb4MXgwdEMnNg+JDxDZJXGyeIjv1+0kLrYwHBgnMNxK8dd1/n98As/PkpwJ3lD2AAAAAElFTkSuQmCC'
+        },
+        lit2: {
+            x: 32,
+            y: 18,
+            width: 16,
+            height: 18,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAASCAYAAABSO15qAAABRElEQVR42qWTrW7DMBSFv1QDgSsLTKHBgIu6sBSWViWl5n2AKTBPMG5aNpUNtswaasCAYQvzCGEdqGzFrsGkXsnA9+f4nutz4UnLUk5ZyFvK3/XdQ/4kLpSFvK12LQC6zNFlDsBq1/p4EsAFRK2YL5YAvMr7AZgvlohaPXQ4cQ730uxtBkCzN6wPA+vDQLM3QUyXuQfJAsSigt74gkpYAIwVALTbyue4mWSykDeKKpxMb1jtWk/l/HPk+7MhlRcACCGwJ40uc9R1CHKdT9QKa60HeIm/RdQKddI0exNQUNvKDzHQQdzBeFhjCgCX3wsA1lp0fkZdh8cOxolwjO734q/3M9MNsI2E5LmNgOJigOkGLh8jKcc/4agkwXvjB9r1XZakEHcSWFGhriaUctd3mRPHf80tVpbcwlgwI+HEW/n0Oj9tfwQvmoxZnLupAAAAAElFTkSuQmCC'
+        },
+        lit3: {
+            x: 48,
+            y: 18,
+            width: 16,
+            height: 18,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAASCAYAAABSO15qAAABSklEQVR42sWTr1PDMBTHP+UQlZO1lRETQXF1q8TOVTLPH8BNTiO4Qw5ZwzEJrrgcahGIyNk6KuuKyCU0WTck7y53yTff9837kQf/bckUKDM5LPs0wF7THt3q5KyAzOQAsOxTxAzKZ4s3t2A6KwIEQhexs1isvOD3i13O3J3jegGZyaGpbcj5PEfsGkwH+t0u04HYNeTz3EZUp14kCRSzAlrFulYAFMIAoIwAYFMVnuNSSWQmB7IirEyruLnbcHVdArD/bHh7XDPFCwSEEJiPLU2dUlZ9wHWYWKwwxniBy7gtYrGirLasaxWkUFZFUGDfxjgCV0ggSAHg8HUAOB/BmAhNdD62i/HBK4+EYueY89vGqMIunVOOtArd6mQyBVrF08M+gMqqP24j2BroVicSgigO9zCTdt9pJl8/OUzj3+Yt+oF/jvMUPjXOP567nnBaLj2vAAAAAElFTkSuQmCC'
+        }
+    },
+    crosses: {
+        thinLeft: {
+            x: 3,
+            y: 43,
+            width: 73,
+            height: 73,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEkAAABJCAYAAABxcwvcAAADCklEQVR42u1cO3KDMBBdMRQuXULnNjdw60twCZ8nkzv4ErQ+RjooKd05RSwiLbsSv4zWo2UmYxuMhB5vn5anjQ0I2rrz4QkAUF2O0LcDAADU94dJfV2FRIDcV7vfvmYNkseYpv79447nCpLLHu5ztiBNwgkxSEFaGEapdKkAwZud4Sw4qXSplAZK5Yq3hltkdhMys4kBydOaAIOy1qT6/jAUADgFSMWoQhKLRlBunRgWyUwBbh0Zcil1qZSiSdXl6INz68YUQDNuLoxegGXvAnTnw9MDgdCi1HqUHKTJrEZo0QTInEAi2eEy6fWeSw+yAAmzwxNpFHbZZ9wkACjsstakuYPPmknu4KW4kPL9JIGupOhwk5Jtiwo3iVokLtz6dtCMOzRwjjGpvW1xySREDDe1b61VInQrxfrbTQ0VAHQwPLNd5l6jN9ktBFhwggNvak+b/tMRCLVbzFqfDzQS+k5sQLjcZg3z1vRPnRNq11DmFj7RHqNeQ2YaPp+68BEgq0c2V0J+N87Ct/Q/i8XO+M0eMe8yYcnjBAsQJeTOMdzH2v45FuObYdi1L+KEYFg0NZsx47aqr48paygGAUDM/17TPzkW3K/D3pK9q3Z/6Gkdr5HhC421hS/Mfj5dAb4/4w7Blv5jjoPTlvHEcy+rgllgZI+5+07Xv/0WqFB7e/TPMNYyr/QEkBtAjNqUdjDU79sBqj1uxpb+KQl4RRLWtIkmuV/kTpozZcfEc2Ste1Mwm9xws8diurSjF+WmBLOmc5wGrF1Xw1OvB/YCwZ4LQqx/Kl2gNkMtBHIncce3PmJwk0Zo2t/aPxALn9y4za7L1CtWXEkHAOVNOG/Zs/85mxFbVYIqS7J2AXZ7GM7RmaTqk7QcUOuTtD5J65O0Pknrk7Q+SeuTtD4JtPQGtD5J65O0Pgm0Pknrk7Q+SeuTdHYjbdu+HVS45zy8phbst/iFCWWSIKa8VzIp7L+4ZSaTAl1J2QsBqklTILSOGxZaJU4Nt4Yb94CLBFztW6w9kSKJFJsBYT+hKFG4fwC/z62Ejpy1NAAAAABJRU5ErkJggg=='
+        },
+        thinRight: {
+            x: 83,
+            y: 44,
+            width: 73,
+            height: 72,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEkAAABICAYAAAC6L9h5AAADs0lEQVR42u1crY4bMRAebwMCWqkwUckVFx0L7UvkJY5XqlRYVB7WJ8hLhB47dCoN27AGBIRtwcaXudkZ2+uk57nzrLTK/sQeezI/n8ef4kDJ0S6mHQDA7OtHAADYbfYAADC/P7rSY2u0KAcrCF/j9/j6JQ+nzoqW8/OLdavCohot7oatCG7u+Oc1Kgm7j7cYTlFSm5c6JiWVJLrQdsUqZ35/dCXcTo274TgE67a3JByfas5urEUxyqk6cA9izHIuxqNSManRYEXsxLer3u0UWFSjyor88esHcFmvFJhs1GW3dXuOSSQ2lYpLTkNMegKMOB4hdyuNup2qdRuX8k9LkyqzmweHA1dThraLKonNaoH0zyr1LSsp2SIQBBChwltVUtQiFGEkXRCABm0miFcXk6SKJGxX57ikBCdNNFjRbrOHmb/59lNdYUJXqURJaUSlu6VktyqV5N3tye0EKyqNtnXWk8zdEjETqnFXv1vCxh+8CXBywdLWps/d/CaAuVvg8DiJKKqkNTXXtIQxE2kX046SJHKCfI78WD/0vsnJOP49/qTPYoLFwLxdnc+IcnPl42QhPfP37WLauVDNBnfg34UmisusVBC+HigohLRJCRcCPIKx8lOzr8vxezooag2xCe02++dtvJJowPbWJCDvq8ln+sN9sBYSjRHL+XDgfqLSUkKyFrw7QhWFXc73K8kZI5/KpO3Q/HabPTiOZTboMGfxybXDOyHcwaV+bE1jxpAjX9iEcOy2jjRw3zkVJrlJoKgf7FOypth4xshPaXtS0oQ1SWkgN3fn+xQh0uBivyhVVO4kQ317y+S+T5KFE6l4sYnEzB+/TzFzyTr9pGjbS+VH4hLOlM/djXO1SIaRNhST3odcm/7y0jgukR/ImBhKOJHYSTrCjUPpM5Yh2fQbym4pP9RI+VyaD1UnBhAg1jinDILhBZWVnDkTQOVY+Rzw5EB1EExSxEo/uQHkktvHou5L5UsrjGAfOYvHS57hNVf3fdZ1D7f9+fd3fz7c9s9PJ16fXUs+aGaVUEscQ70pwQnQuc39n9oaP8n4ScZPMn6S8ZOMn2T8JOMngfGTjJ9k/CTjJxk/yfhJxk8C4ycZP+lNZbd12+MkVPivOnCP2RCo2t2CazdSATB3MwiQUS5hkPar5kxeHQIwrleyKgkA8E5D+n//edo/eDwAfPrTX3/5APB4gMP2WPeyxE/+WtvqdZVKFHG49a3d8NJEUfB2GvbdJNK7ln8IdKDsLxQlZF5SUf8AnXRX3gaekrMAAAAASUVORK5CYII='
+        },
+        fullLeft: {
+            x: 0,
+            y: 121,
+            width: 78,
+            height: 77,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE4AAABNCAYAAAAIPlKzAAAEcElEQVR42u1cvW7bQAymBA0ePcqbHiHt5DUv4RfIVGQvEKBP0N1b/QJ5iayZ0m5dvclbNWa7DjZtiuL96JxYNMwDBEuyJEqfyPtIHnUAilq7nDlpXdqeuhWgrIUAWry+F+1y5hav7wUei+s3CxwFrL6f71dWC4Dn9vi7e+lgKqB4K7UAh4D0QBN+EeCpTbdUaZ4IVvN4WgioU5qoKuBEEJpHgPnDflHYSrWkQAHD9dWip3UGHGm7l25PCN1mqIExLb15csA+LtNtuUSr1Jrqdg3QgNpWqryr53a/bNfjCOWWTbXnkty9BZl1SnPVqXGrxYAMjpqoROvKa4hRodsEzdZMVQLsz9c9aEzbpjZVVUH+MU6l5or9G2rdIdg3U/X1cTx6UNaqqyEGGllYHxdoXNsO5NAzZ9M4D5My0ChB3LwDHGXGgBsyJatWKt0QdD94f7daq9G6SpMf10Lnas6s2N/xNJORg8CaNHXOSELLgI3ekCvgkmgYY1XHqvX9fKhpysxUf6zqYVcNpqo3Axzx4ww4Vt7g9d0IaBrGVSst2jYAgpLDdn1iWmPVBCc4gWHVAJdD9aHyrNH5OIwWPGDV93NolzPnk3kpV6UMvf1YjRq/YV6ClUoEufHqR8lPrc2j+wtff4MH+WrS+HGY7pHyZb2On7ycQWkXjRgiJMHlnCt/bJdS+ADLclwzEo+Dsq5Qfya4JXj9s+V7zuUvBMErJJWkD7P79jctecjLFsb4XBw0nsSUfDouI1c+npdwLQpez+TEt89vVKrrkLSEagc9hx/780cwqI+Cd658ib0xG8PlkKrQamCe/CEarON4BPgu3By9EfrQDfG/JE1CIPD/2LgpHe3C4zkIOfJ9wM8fAGDd729XC6gBoIXO9RjJPdXO/f7i3L9frtf4Nu6T9o9p9Bp8PXaOdJ+58ul1pHUq86l27XLmyigZ4JvJyVCknJNimlILmfUY+ZKmd5v+uYKcSmRSXmKFZsH7Gb5PGplqIGwmfLvbnPoY3J8Kbq78YNQiA1z42DRIBj4NGBsy8X4KtyWgfA+LcnLlA/gTCgF2LYJlCDGaDwHsE86P4f/7yAaB8znFufI9ft/gWwuWuo86wBRI6kzGfLvUEXexdDWmIQk+2meO+PeAk1I8HxEw+z4fEkO2EIDMn0wFJibfF0ZKGETTWSmA0cCXB8HSvlAwPXCH+ELdAeIS0OUc+Z+V8RmVJTknmeme6v7CfTsG3CVTSVxGmZNojG3DZ5Z6CWZ6iYwwl2H1cWD1cVYfZ/VxYPVxVh9n9XFWH2fkYPVxVh8HVh9n9XFWH2f1cVYfZ/VxVh931e7IMYBHs+Tf4x/2a3BH9M6t5BvtUsKq+kw1dRzXgIO0FJMiV0RnPg6zIsJMN1qyv+o0bgCMsikzrmeKoOdWnALNTDVQ4NwjCYWap3uKoLs30QHWME9meRXTA3ncl5tPnVMAdi8d1Di+0Og1VZUTKA8KHIXSB8uOsAwJDtoAANQKJ9xTq3Ghfo9/KjXl/f0HEAbTOzGUl5IAAAAASUVORK5CYII='
+        },
+        fullRight: {
+            x: 80,
+            y: 120,
+            width: 80,
+            height: 80,
+            data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAFRklEQVR42u1cP2vbUBA/OR48pKBRpos7li6ph9DVX8JfIEuD90CgQ+fuJkvzBbx3radCIJBkKVm92UOhGkLxEFAH6Umn0917shWaK7kHgUh+eu/p9O7f735SBMra+sMgc/8nk7j222aZAgDA8GobaVlvpEFgw6tt5ASXTGKA6ZDvvFiXQtQiyN5zLwALoSa80Qzg6Cb/G83yc9NhuSu17MK+NrUthRefiP2TSQxrSDMNguxpEGApBE5100uA1bw6Rn007MJIndOYDiuVpW01B1isVTkUNTawZv9W82rXxSeiOmvYgSpsYKNJNrDYfZpaT5UDkQTk7GCxQzfLVI0XVhXG1Gzd3TgXHHUitgM9DXth7EhGs4ZjaYQ+JkBoCo86EKTipsIhG0idCLKBySS2HUgzi1rjPDBK58wGtrGBnEClANviQCK8uzHvTBQ2PQJcrOtIDKfK6WWFygDAGtLsuZ2JCgFulmnTDmKBOSeisEVa4KxSgJwdxGrsBFmAqy8eTGiEI4t1Fc44UJWqMkGmzQtzDoUCCh6A1XLhkPAYPNBqIm13HudQbAcGGhUWPkZORkM6F2mqB3shfRTGbE7v1ajwgaaq3OGbAcDPB4Af3wFe3wPEx8iJHAOk1wAA8PDtl5U1vYACjgWxPRzlOzGZxABXG0vlgoCqJ3RxjAZzIoUtqwXGnA1UCu3r8sI4C8G7j3hlTUWlvsosRIr7RjOAL59UqXBfHZjgS90UBtMRfZL4uM1Tpv13TbOy8yTzVuSkeBABCl3m5wJyev8+mURtInoq4La1Dcrl424wO0+yBpAaEh4qQOE59pm/xktkrqNyoEKNuAGkRYhFILx7nBNw5xi2Qe2mL942hSeFL06F0S7sPL/vXsj1HLkzqqVQ7kaYJ926Gkav5yB7Oq4E4fsarpt0md8H4krjoEigXxuAsgHcAPR3PDDud3RTnJw3xzvja7x7CU9CqbvO7x4KlQNuZ0U2VNRk8h148bZ5I1hdpOReUru7sT+TcL+HvC5VX6nI1GV+7jp3Hs9J/1/NYXN6T8IYigCnl/JCRp6bD6Rh4iJ9zde3y/y+69qsKztPsuz312yvtu91XcbDfZ56/l3mvX2fZedJ1tspSFWKCsO/AHiFPLznrW45fh5Vo9Bkvj7096d+KLvOj887TuIO1/aSSVxxkumNOalzxlpaBHcN54A4Ie7jSJ5yfnoceLibZQoHHx8fPx/+eQR49ypHfbe3+V+5kOv8/GDMB7SDvnyNO++uxTfoxtze5se4n9S4Nbg59p3fnUuv8xjPIeFuvEG/PiaqDj6stlBlIi4jCPFVdqFa0LhRCl53jQXbYoNt56fZCs5iuCAbBdPNfHA6DEfpIca8sDgxhaKFpJAgXcArrWHX+T35b6hvJKEp0gBtKBWhtyzxAyuJRb4XbCi4yrxw02V+DoEJgSdlLiy9OSkNIgk71N8HI7HEIk6tPcLbd/42sJcbj+sbqWRm+fiBythZxg80fqDxA40fCMYPBOMHGj/QBAjGDzR+oPEDjR9o/EDjBxo/EIwfaPxA4wf+J8G0GhUubWAoE0FfcDMBSjmttNNILmw20EeiHOkXnrpUjq2PCOVULemcqh1YE17J9SOqLREfX7INrKEqDkzw2UHDAwNOxHF1JLKPIluo8/uBXGmT1IRNhSUscLGWhQf24R3R/m2WKSQUkeHUF3F3NKRzfQ32LwjNxydVXLiaq/qiuU5AlXt1oQ071nLhohWISy2IJnbQPsAohTGU1Ei/o4q8sFXl2lLdmFeszAtLr8wW38hPWr74+NztL787JmcVH37GAAAAAElFTkSuQmCC'
+        }
+    }
+};
+const BOMBERMAN_SPRITE_SETS = {
+    player: BOMBERMAN_PLAYER_SPRITES,
+    plunderBomber: PLUNDER_BOMBER_SPRITES,
+    explosions: BOMBERMAN_EXPLOSION_SPRITES
+};
+
+
+/***/ },
+
+/***/ "./src/bomberman/core/game.ts"
+/*!************************************!*\
+  !*** ./src/bomberman/core/game.ts ***!
+  \************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Game: () => (/* binding */ Game)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _renderers_svg__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../renderers/svg */ "./src/bomberman/renderers/svg.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./constants */ "./src/bomberman/core/constants.ts");
+/* harmony import */ var _ai__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./ai */ "./src/bomberman/core/ai.ts");
+/* harmony import */ var _rules__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./rules */ "./src/bomberman/core/rules.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+const placePlayers = (store) => {
+    const playerOneStart = (0,_rules__WEBPACK_IMPORTED_MODULE_4__.findNearestEmptyCell)(store, { x: 0, y: 0 });
+    const playerTwoStart = (0,_rules__WEBPACK_IMPORTED_MODULE_4__.findNearestEmptyCell)(store, { x: _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_WIDTH - 1, y: _constants__WEBPACK_IMPORTED_MODULE_2__.GRID_HEIGHT - 1 }, new Set([(0,_rules__WEBPACK_IMPORTED_MODULE_4__.positionKey)(playerOneStart)]));
+    store.players = [
+        createPlayer(1, 'Bomberman', playerOneStart, 'right', _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_SPRITE_SETS.player.idleDown.data),
+        createPlayer(2, 'Plunder Bomber', playerTwoStart, 'left', _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_SPRITE_SETS.plunderBomber.idleDown.data)
+    ];
+};
+const createPlayer = (id, name, position, direction, sprite) => (Object.assign(Object.assign({ id,
+    name }, position), { alive: true, direction, bombsPlaced: 0, cellsDestroyed: 0, sprite }));
+const pushSnapshot = (store) => {
+    store.gameHistory.push({
+        players: store.players.map((player) => (Object.assign({}, player))),
+        bombs: store.bombs.map((bomb) => (Object.assign({}, bomb))),
+        explosions: store.activeExplosions.map((explosion) => (Object.assign(Object.assign({}, explosion), { affectedCells: explosion.affectedCells.map((cell) => (Object.assign({}, cell))), hitPlayerIds: [...explosion.hitPlayerIds] })))
+    });
+};
+const updateGame = (store) => {
+    store.frameCount++;
+    (0,_rules__WEBPACK_IMPORTED_MODULE_4__.updateExplosions)(store);
+    (0,_rules__WEBPACK_IMPORTED_MODULE_4__.updateBombs)(store);
+    for (const player of store.players) {
+        if (!player.alive)
+            continue;
+        if ((0,_rules__WEBPACK_IMPORTED_MODULE_4__.canPlaceBomb)(store, player) && (0,_ai__WEBPACK_IMPORTED_MODULE_3__.shouldPlaceBomb)(store, player)) {
+            (0,_rules__WEBPACK_IMPORTED_MODULE_4__.placeBomb)(store, player);
+        }
+        (0,_ai__WEBPACK_IMPORTED_MODULE_3__.movePlayer)(store, player);
+    }
+    pushSnapshot(store);
+};
+const appendDeathAnimationSnapshots = (store) => {
+    if (store.players.every((player) => player.alive))
+        return;
+    for (let frame = 1; frame < _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_DEATH_ANIMATION_FRAMES; frame++) {
+        (0,_rules__WEBPACK_IMPORTED_MODULE_4__.updateExplosions)(store);
+        pushSnapshot(store);
+    }
+};
+const resetGameState = (store) => {
+    store.frameCount = 0;
+    store.nextBombId = 0;
+    store.players = [];
+    store.bombs = [];
+    store.activeExplosions = [];
+    store.gameHistory = [];
+    store.cellEvents = [];
+    store.explosionEvents = [];
+};
+const stopGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    clearInterval(store.gameInterval);
+});
+const startGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
+    resetGameState(store);
+    store.grid = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.createGridFromData(store);
+    store.initialColors = store.grid.map((col) => col.map((cell) => cell.color));
+    placePlayers(store);
+    pushSnapshot(store);
+    while ((0,_rules__WEBPACK_IMPORTED_MODULE_4__.countRemainingContributions)(store) > 0 &&
+        store.players.filter((player) => player.alive).length > 1 &&
+        store.frameCount < _constants__WEBPACK_IMPORTED_MODULE_2__.BOMBERMAN_MAX_FRAMES) {
+        updateGame(store);
+    }
+    appendDeathAnimationSnapshots(store);
+    const svg = _renderers_svg__WEBPACK_IMPORTED_MODULE_1__.Renderer.generateAnimatedSVG(store);
+    store.config.svgCallback(svg);
+    if (store.config.gameStatsCallback) {
+        store.config.gameStatsCallback({
+            totalScore: store.cellEvents.length,
+            steps: store.frameCount,
+            ghostsEaten: 0
+        });
+    }
+    store.config.gameOverCallback();
+});
+const Game = {
+    startGame,
+    stopGame
+};
+
+
+/***/ },
+
+/***/ "./src/bomberman/core/pathfinding.ts"
+/*!*******************************************!*\
+  !*** ./src/bomberman/core/pathfinding.ts ***!
+  \*******************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   canEscapeAfterPlantingBomb: () => (/* binding */ canEscapeAfterPlantingBomb),
+/* harmony export */   canEscapeAfterPlantingBombAt: () => (/* binding */ canEscapeAfterPlantingBombAt),
+/* harmony export */   estimateFastestRoute: () => (/* binding */ estimateFastestRoute),
+/* harmony export */   findEscapeStep: () => (/* binding */ findEscapeStep),
+/* harmony export */   findPathToTarget: () => (/* binding */ findPathToTarget),
+/* harmony export */   findReachableBombOrigins: () => (/* binding */ findReachableBombOrigins),
+/* harmony export */   getPreviousPlayerPosition: () => (/* binding */ getPreviousPlayerPosition),
+/* harmony export */   isBacktrackingStep: () => (/* binding */ isBacktrackingStep),
+/* harmony export */   sortPathOptions: () => (/* binding */ sortPathOptions)
+/* harmony export */ });
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./constants */ "./src/bomberman/core/constants.ts");
+/* harmony import */ var _rules__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./rules */ "./src/bomberman/core/rules.ts");
+
+
+
+const getPreviousPlayerPosition = (store, playerId) => {
+    const previousFrame = store.gameHistory[store.gameHistory.length - 2];
+    const previousPlayer = previousFrame === null || previousFrame === void 0 ? void 0 : previousFrame.players.find((candidate) => candidate.id === playerId);
+    return previousPlayer ? { x: previousPlayer.x, y: previousPlayer.y } : null;
+};
+const isBacktrackingStep = (store, player, next) => {
+    const previousPosition = getPreviousPlayerPosition(store, player.id);
+    return Boolean(previousPosition && (0,_rules__WEBPACK_IMPORTED_MODULE_1__.samePosition)(previousPosition, next));
+};
+const sortPathOptions = (positions, options) => positions.sort((a, b) => {
+    const aBacktracks = options.avoidFirstStep && (0,_rules__WEBPACK_IMPORTED_MODULE_1__.samePosition)(a, options.avoidFirstStep) ? 1 : 0;
+    const bBacktracks = options.avoidFirstStep && (0,_rules__WEBPACK_IMPORTED_MODULE_1__.samePosition)(b, options.avoidFirstStep) ? 1 : 0;
+    if (aBacktracks !== bBacktracks)
+        return aBacktracks - bBacktracks;
+    if (options.target)
+        return (0,_rules__WEBPACK_IMPORTED_MODULE_1__.manhattan)(a, options.target) - (0,_rules__WEBPACK_IMPORTED_MODULE_1__.manhattan)(b, options.target);
+    return 0;
+});
+const findPathToTarget = (store, start, isTarget, options = {}) => {
+    var _a;
+    const visited = new Set([(0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(start)]);
+    const queue = [
+        { position: start, firstStep: null, distance: 0 }
+    ];
+    while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current)
+            break;
+        if (current.firstStep && isTarget(current.position)) {
+            return {
+                firstStep: current.firstStep,
+                distance: current.distance
+            };
+        }
+        const nextPositions = sortPathOptions((0,_rules__WEBPACK_IMPORTED_MODULE_1__.getAdjacentPositions)(current.position), current.firstStep ? { target: options.target } : options);
+        for (const next of nextPositions) {
+            const key = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(next);
+            if (visited.has(key) || !(0,_rules__WEBPACK_IMPORTED_MODULE_1__.isPassableCell)(store, next))
+                continue;
+            visited.add(key);
+            queue.push({
+                position: next,
+                firstStep: (_a = current.firstStep) !== null && _a !== void 0 ? _a : { x: next.x, y: next.y },
+                distance: current.distance + 1
+            });
+        }
+    }
+    return null;
+};
+const estimateFastestRoute = (store, start, target, openedCells = new Set()) => {
+    var _a;
+    const queue = [{ position: start, firstStep: null, distance: 0, cost: 0, blastedCells: 0 }];
+    const bestCosts = new Map([[(0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(start), 0]]);
+    while (queue.length > 0) {
+        queue.sort((a, b) => a.cost - b.cost || (0,_rules__WEBPACK_IMPORTED_MODULE_1__.manhattan)(a.position, target) - (0,_rules__WEBPACK_IMPORTED_MODULE_1__.manhattan)(b.position, target));
+        const current = queue.shift();
+        if (!current)
+            break;
+        if (current.firstStep && (0,_rules__WEBPACK_IMPORTED_MODULE_1__.samePosition)(current.position, target)) {
+            return {
+                firstStep: current.firstStep,
+                distance: current.distance,
+                cost: current.cost,
+                blastedCells: current.blastedCells
+            };
+        }
+        for (const next of (0,_rules__WEBPACK_IMPORTED_MODULE_1__.getAdjacentPositions)(current.position)) {
+            if ((0,_rules__WEBPACK_IMPORTED_MODULE_1__.bombAt)(store, next) || (0,_rules__WEBPACK_IMPORTED_MODULE_1__.isActiveExplosionCell)(store, next))
+                continue;
+            const key = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(next);
+            const opened = openedCells.has(key);
+            const contribution = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.isContributionCell)(store, next) && !opened;
+            const walkable = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.isEmptyCell)(store, next) || opened || contribution || (0,_rules__WEBPACK_IMPORTED_MODULE_1__.samePosition)(next, target);
+            if (!walkable)
+                continue;
+            const stepCost = contribution ? _constants__WEBPACK_IMPORTED_MODULE_0__.BOMBERMAN_PATH_BLAST_COST : 1;
+            const nextCost = current.cost + stepCost;
+            const previousBest = bestCosts.get(key);
+            if (previousBest !== undefined && previousBest <= nextCost)
+                continue;
+            bestCosts.set(key, nextCost);
+            queue.push({
+                position: { x: next.x, y: next.y },
+                firstStep: (_a = current.firstStep) !== null && _a !== void 0 ? _a : { x: next.x, y: next.y },
+                distance: current.distance + 1,
+                cost: nextCost,
+                blastedCells: current.blastedCells + (contribution ? 1 : 0)
+            });
+        }
+    }
+    return null;
+};
+const findEscapeStep = (store, player) => {
+    var _a;
+    const maxDepth = Math.max(_constants__WEBPACK_IMPORTED_MODULE_0__.BOMBERMAN_BOMB_FUSE_FRAMES, _constants__WEBPACK_IMPORTED_MODULE_0__.BOMBERMAN_AI.ESCAPE_MIN_SEARCH_DEPTH);
+    const queue = [
+        { position: player, firstStep: null, depth: 0 }
+    ];
+    const visited = new Set([(0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(player)]);
+    while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current)
+            break;
+        if (current.firstStep && (0,_rules__WEBPACK_IMPORTED_MODULE_1__.isSafeStandingCell)(store, player, current.position))
+            return current.firstStep;
+        if (current.depth >= maxDepth)
+            continue;
+        const nextPositions = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.getAdjacentPositions)(current.position).sort((a, b) => {
+            const aThreats = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.bombsThreateningAt)(store, a, player.id).length;
+            const bThreats = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.bombsThreateningAt)(store, b, player.id).length;
+            return aThreats - bThreats;
+        });
+        for (const next of nextPositions) {
+            const key = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(next);
+            if (visited.has(key) || !(0,_rules__WEBPACK_IMPORTED_MODULE_1__.isEmptyCell)(store, next) || (0,_rules__WEBPACK_IMPORTED_MODULE_1__.bombAt)(store, next) || (0,_rules__WEBPACK_IMPORTED_MODULE_1__.isActiveExplosionCell)(store, next, player.id))
+                continue;
+            const nextDepth = current.depth + 1;
+            const explodesBeforeNextMove = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.bombsThreateningAt)(store, next, player.id).some((bomb) => bomb.timer <= nextDepth);
+            if (explodesBeforeNextMove)
+                continue;
+            visited.add(key);
+            queue.push({
+                position: next,
+                firstStep: (_a = current.firstStep) !== null && _a !== void 0 ? _a : { x: next.x, y: next.y },
+                depth: nextDepth
+            });
+        }
+    }
+    return null;
+};
+const findReachableBombOrigins = (store, player) => {
+    var _a;
+    const visited = new Set([(0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(player)]);
+    const queue = [{ position: player, firstStep: null, distance: 0 }];
+    const origins = [];
+    const previousPosition = getPreviousPlayerPosition(store, player.id);
+    while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current)
+            break;
+        origins.push(current);
+        const nextPositions = sortPathOptions((0,_rules__WEBPACK_IMPORTED_MODULE_1__.getAdjacentPositions)(current.position), current.firstStep ? { target: player } : { avoidFirstStep: previousPosition, target: player });
+        for (const next of nextPositions) {
+            const key = (0,_rules__WEBPACK_IMPORTED_MODULE_1__.positionKey)(next);
+            if (visited.has(key) ||
+                !(0,_rules__WEBPACK_IMPORTED_MODULE_1__.isPassableCell)(store, next) ||
+                (0,_rules__WEBPACK_IMPORTED_MODULE_1__.isActiveExplosionCell)(store, next, player.id) ||
+                (0,_rules__WEBPACK_IMPORTED_MODULE_1__.isInOwnFutureBlast)(store, player, next)) {
+                continue;
+            }
+            visited.add(key);
+            queue.push({
+                position: { x: next.x, y: next.y },
+                firstStep: (_a = current.firstStep) !== null && _a !== void 0 ? _a : { x: next.x, y: next.y },
+                distance: current.distance + 1
+            });
+        }
+    }
+    return origins;
+};
+const canEscapeAfterPlantingBombAt = (store, player, position) => {
+    if (!(0,_rules__WEBPACK_IMPORTED_MODULE_1__.isEmptyCell)(store, position) || (0,_rules__WEBPACK_IMPORTED_MODULE_1__.bombAt)(store, position))
+        return false;
+    const virtualBomb = {
+        id: -1,
+        ownerId: player.id,
+        x: position.x,
+        y: position.y,
+        timer: _constants__WEBPACK_IMPORTED_MODULE_0__.BOMBERMAN_BOMB_FUSE_FRAMES,
+        exploded: false,
+        sprite: ''
+    };
+    const virtualPlayer = Object.assign(Object.assign({}, player), { x: position.x, y: position.y });
+    store.bombs.push(virtualBomb);
+    try {
+        return Boolean(findEscapeStep(store, virtualPlayer));
+    }
+    finally {
+        store.bombs.pop();
+    }
+};
+const canEscapeAfterPlantingBomb = (store, player) => {
+    return canEscapeAfterPlantingBombAt(store, player, player);
+};
+
+
+/***/ },
+
+/***/ "./src/bomberman/core/rules.ts"
+/*!*************************************!*\
+  !*** ./src/bomberman/core/rules.ts ***!
+  \*************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   DIRECTIONS: () => (/* binding */ DIRECTIONS),
+/* harmony export */   bombAt: () => (/* binding */ bombAt),
+/* harmony export */   bombWouldHitContribution: () => (/* binding */ bombWouldHitContribution),
+/* harmony export */   bombWouldHitOpponent: () => (/* binding */ bombWouldHitOpponent),
+/* harmony export */   bombWouldHitTarget: () => (/* binding */ bombWouldHitTarget),
+/* harmony export */   bombsThreateningAt: () => (/* binding */ bombsThreateningAt),
+/* harmony export */   canPlaceBomb: () => (/* binding */ canPlaceBomb),
+/* harmony export */   clearContributionCell: () => (/* binding */ clearContributionCell),
+/* harmony export */   countRemainingContributions: () => (/* binding */ countRemainingContributions),
+/* harmony export */   explodeBomb: () => (/* binding */ explodeBomb),
+/* harmony export */   findNearestEmptyCell: () => (/* binding */ findNearestEmptyCell),
+/* harmony export */   getAdjacentPositions: () => (/* binding */ getAdjacentPositions),
+/* harmony export */   getBlastCells: () => (/* binding */ getBlastCells),
+/* harmony export */   inBounds: () => (/* binding */ inBounds),
+/* harmony export */   isActiveExplosionCell: () => (/* binding */ isActiveExplosionCell),
+/* harmony export */   isContributionCell: () => (/* binding */ isContributionCell),
+/* harmony export */   isEmptyCell: () => (/* binding */ isEmptyCell),
+/* harmony export */   isInOwnFutureBlast: () => (/* binding */ isInOwnFutureBlast),
+/* harmony export */   isPassableCell: () => (/* binding */ isPassableCell),
+/* harmony export */   isSafeStandingCell: () => (/* binding */ isSafeStandingCell),
+/* harmony export */   manhattan: () => (/* binding */ manhattan),
+/* harmony export */   placeBomb: () => (/* binding */ placeBomb),
+/* harmony export */   positionKey: () => (/* binding */ positionKey),
+/* harmony export */   samePosition: () => (/* binding */ samePosition),
+/* harmony export */   updateBombs: () => (/* binding */ updateBombs),
+/* harmony export */   updateExplosions: () => (/* binding */ updateExplosions)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./constants */ "./src/bomberman/core/constants.ts");
+
+
+const DIRECTIONS = [
+    { x: 0, y: -1, direction: 'up' },
+    { x: 0, y: 1, direction: 'down' },
+    { x: -1, y: 0, direction: 'left' },
+    { x: 1, y: 0, direction: 'right' }
+];
+const positionKey = ({ x, y }) => `${x}:${y}`;
+const samePosition = (a, b) => a.x === b.x && a.y === b.y;
+const manhattan = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+const inBounds = ({ x, y }) => x >= 0 && x < _constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH && y >= 0 && y < _constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT;
+const isContributionCell = (store, { x, y }) => inBounds({ x, y }) && store.grid[x][y].commitsCount > 0;
+const isEmptyCell = (store, { x, y }) => inBounds({ x, y }) && store.grid[x][y].commitsCount === 0;
+const bombAt = (store, { x, y }) => store.bombs.find((bomb) => !bomb.exploded && bomb.x === x && bomb.y === y);
+const isPassableCell = (store, position) => isEmptyCell(store, position) && !bombAt(store, position);
+const getBlastCells = (position) => [
+    position,
+    ...DIRECTIONS.map((direction) => ({
+        x: position.x + direction.x * _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_BLAST_RANGE,
+        y: position.y + direction.y * _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_BLAST_RANGE
+    })).filter(inBounds)
+];
+const isActiveExplosionCell = (store, position, ownerId) => store.activeExplosions.some((explosion) => (ownerId === undefined || explosion.ownerId === ownerId) && explosion.affectedCells.some((cell) => samePosition(cell, position)));
+const bombsThreateningAt = (store, position, ownerId) => store.bombs.filter((bomb) => !bomb.exploded &&
+    (ownerId === undefined || bomb.ownerId === ownerId) &&
+    getBlastCells(bomb).some((cell) => samePosition(cell, position)));
+const isInOwnFutureBlast = (store, player, position) => bombsThreateningAt(store, position, player.id).length > 0;
+const isSafeStandingCell = (store, player, position) => isEmptyCell(store, position) &&
+    !bombAt(store, position) &&
+    !isActiveExplosionCell(store, position, player.id) &&
+    !isInOwnFutureBlast(store, player, position);
+const getAdjacentPositions = ({ x, y }) => DIRECTIONS.map((delta) => ({
+    x: x + delta.x,
+    y: y + delta.y,
+    direction: delta.direction
+})).filter(inBounds);
+const countRemainingContributions = (store) => store.grid.reduce((sum, col) => sum + col.filter((cell) => cell.commitsCount > 0).length, 0);
+const findNearestEmptyCell = (store, origin, blocked = new Set()) => {
+    let best = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let x = 0; x < _constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        for (let y = 0; y < _constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT; y++) {
+            const position = { x, y };
+            if (!isEmptyCell(store, position) || blocked.has(positionKey(position)))
+                continue;
+            const distance = Math.abs(origin.x - x) + Math.abs(origin.y - y);
+            if (distance < bestDistance) {
+                best = position;
+                bestDistance = distance;
+            }
+        }
+    }
+    return best !== null && best !== void 0 ? best : origin;
+};
+const canPlaceBomb = (store, player) => player.alive &&
+    isEmptyCell(store, player) &&
+    !bombAt(store, player) &&
+    !store.bombs.some((bomb) => !bomb.exploded && bomb.ownerId === player.id);
+const bombWouldHitContribution = (store, position) => getBlastCells(position).some((cell) => isContributionCell(store, cell));
+const bombWouldHitOpponent = (store, player) => {
+    const opponent = store.players.find((candidate) => candidate.id !== player.id && candidate.alive);
+    return Boolean(opponent && getBlastCells(player).some((cell) => samePosition(cell, opponent)));
+};
+const bombWouldHitTarget = (store, player) => bombWouldHitContribution(store, player) || bombWouldHitOpponent(store, player);
+const placeBomb = (store, player) => {
+    if (!canPlaceBomb(store, player))
+        return;
+    store.bombs.push({
+        id: store.nextBombId++,
+        ownerId: player.id,
+        x: player.x,
+        y: player.y,
+        timer: _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_BOMB_FUSE_FRAMES,
+        exploded: false,
+        sprite: _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.explosions.bombs.fuse0.data
+    });
+    player.bombsPlaced++;
+};
+const clearContributionCell = (store, position, ownerId) => {
+    if (!isContributionCell(store, position))
+        return false;
+    const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+    store.grid[position.x][position.y] = {
+        commitsCount: 0,
+        level: 'NONE',
+        color: theme.intensityColors[0]
+    };
+    const owner = store.players.find((player) => player.id === ownerId);
+    if (owner)
+        owner.cellsDestroyed++;
+    store.cellEvents.push({
+        frameIndex: store.gameHistory.length,
+        x: position.x,
+        y: position.y,
+        color: theme.intensityColors[0]
+    });
+    store.config.pointsIncreasedCallback(store.cellEvents.length);
+    return true;
+};
+const explodeBomb = (store, bomb) => {
+    if (bomb.exploded)
+        return;
+    bomb.exploded = true;
+    const affectedCells = [{ x: bomb.x, y: bomb.y }];
+    const hitPlayerIds = [];
+    for (const direction of DIRECTIONS) {
+        const position = {
+            x: bomb.x + direction.x * _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_BLAST_RANGE,
+            y: bomb.y + direction.y * _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_BLAST_RANGE
+        };
+        if (!inBounds(position))
+            continue;
+        affectedCells.push(position);
+        clearContributionCell(store, position, bomb.ownerId);
+        const chainedBomb = bombAt(store, position);
+        if (chainedBomb)
+            explodeBomb(store, chainedBomb);
+    }
+    for (const player of store.players) {
+        if (!player.alive)
+            continue;
+        if (!affectedCells.some((position) => position.x === player.x && position.y === player.y))
+            continue;
+        player.alive = false;
+        hitPlayerIds.push(player.id);
+    }
+    const explosion = {
+        bombId: bomb.id,
+        ownerId: bomb.ownerId,
+        x: bomb.x,
+        y: bomb.y,
+        remainingFrames: _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_EXPLOSION_DURATION_FRAMES,
+        affectedCells,
+        hitPlayerIds,
+        sprite: _constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.explosions.bombs.blastCenter.data
+    };
+    store.activeExplosions.push(explosion);
+    store.explosionEvents.push(Object.assign({ frameIndex: store.gameHistory.length }, explosion));
+};
+const updateBombs = (store) => {
+    for (const bomb of store.bombs) {
+        if (!bomb.exploded)
+            bomb.timer--;
+    }
+    for (const bomb of [...store.bombs]) {
+        if (!bomb.exploded && bomb.timer <= 0)
+            explodeBomb(store, bomb);
+    }
+    store.bombs = store.bombs.filter((bomb) => !bomb.exploded);
+};
+const updateExplosions = (store) => {
+    for (const explosion of store.activeExplosions) {
+        explosion.remainingFrames--;
+    }
+    store.activeExplosions = store.activeExplosions.filter((explosion) => explosion.remainingFrames > 0);
+};
+
+
+/***/ },
+
+/***/ "./src/bomberman/core/store.ts"
+/*!*************************************!*\
+  !*** ./src/bomberman/core/store.ts ***!
+  \*************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Store: () => (/* binding */ Store)
+/* harmony export */ });
+const Store = {
+    frameCount: 0,
+    contributions: [],
+    grid: [],
+    monthLabels: [],
+    gameInterval: 0,
+    nextBombId: 0,
+    players: [],
+    bombs: [],
+    activeExplosions: [],
+    gameHistory: [],
+    initialColors: [],
+    cellEvents: [],
+    explosionEvents: [],
+    config: undefined
+};
+
+
+/***/ },
+
+/***/ "./src/bomberman/index.ts"
+/*!********************************!*\
+  !*** ./src/bomberman/index.ts ***!
+  \********************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   BombermanRenderer: () => (/* binding */ BombermanRenderer)
+/* harmony export */ });
+/* harmony import */ var _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../shared/providers/providers */ "./src/shared/providers/providers.ts");
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_game__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./core/game */ "./src/bomberman/core/game.ts");
+/* harmony import */ var _core_store__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./core/store */ "./src/bomberman/core/store.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+class BombermanRenderer {
+    constructor(conf) {
+        this.conf = Object.assign({}, conf);
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const defaultConfig = {
+                platform: 'github',
+                username: '',
+                svgCallback: (_) => { },
+                gameOverCallback: () => { },
+                gameTheme: 'github',
+                pointsIncreasedCallback: (_) => { },
+                githubSettings: { accessToken: '' }
+            };
+            this.store = JSON.parse(JSON.stringify(_core_store__WEBPACK_IMPORTED_MODULE_3__.Store));
+            this.store.config = Object.assign(Object.assign({}, defaultConfig), this.conf);
+            switch (this.store.config.platform) {
+                case 'gitlab':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGitlabContributions(this.store);
+                    break;
+                case 'github':
+                    this.store.contributions = yield _shared_providers_providers__WEBPACK_IMPORTED_MODULE_0__.Providers.fetchGithubContributions(this.store);
+                    break;
+                default:
+                    throw new Error(`Unsupported platform: ${this.store.config.platform}`);
+            }
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildGrid(this.store);
+            _shared_utils_utils__WEBPACK_IMPORTED_MODULE_1__.Utils.buildMonthLabels(this.store);
+            yield _core_game__WEBPACK_IMPORTED_MODULE_2__.Game.startGame(this.store);
+            return this.store;
+        });
+    }
+    stop() {
+        _core_game__WEBPACK_IMPORTED_MODULE_2__.Game.stopGame(this.store);
+    }
+}
+
+
+/***/ },
+
+/***/ "./src/bomberman/renderers/animation.ts"
+/*!**********************************************!*\
+  !*** ./src/bomberman/renderers/animation.ts ***!
+  \**********************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   appendFinalKeyframe: () => (/* binding */ appendFinalKeyframe),
+/* harmony export */   appendKeyframe: () => (/* binding */ appendKeyframe),
+/* harmony export */   buildChangingValuesAnimation: () => (/* binding */ buildChangingValuesAnimation),
+/* harmony export */   buildStepwiseLinearAnimation: () => (/* binding */ buildStepwiseLinearAnimation),
+/* harmony export */   frameToKeyTime: () => (/* binding */ frameToKeyTime)
+/* harmony export */ });
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../core/constants */ "./src/bomberman/core/constants.ts");
+
+const buildChangingValuesAnimation = (values) => {
+    const totalFrames = values.length;
+    if (totalFrames <= 1)
+        return null;
+    const keyTimes = [];
+    const keyValues = [];
+    let lastValue = null;
+    values.forEach((currentValue, index) => {
+        if (currentValue === lastValue)
+            return;
+        appendKeyframe(keyTimes, keyValues, frameToKeyTime(index, totalFrames), currentValue);
+        lastValue = currentValue;
+    });
+    if (keyTimes.length === 0)
+        return null;
+    appendFinalKeyframe(keyTimes, keyValues);
+    if (keyValues.length <= 1 || keyValues.every((value) => value === keyValues[0]))
+        return null;
+    return {
+        keyTimes: keyTimes.join(';'),
+        values: keyValues.join(';')
+    };
+};
+const buildStepwiseLinearAnimation = (values) => {
+    const totalFrames = values.length;
+    if (totalFrames <= 1)
+        return null;
+    const keyTimes = [];
+    const keyValues = [];
+    let lastValue = null;
+    let lastChangeIndex = null;
+    values.forEach((currentValue, index) => {
+        if (currentValue === lastValue)
+            return;
+        if (lastValue !== null && lastChangeIndex !== null && index - 1 !== lastChangeIndex) {
+            appendKeyframe(keyTimes, keyValues, frameToKeyTime(index - 1, totalFrames), lastValue);
+        }
+        appendKeyframe(keyTimes, keyValues, frameToKeyTime(index, totalFrames), currentValue);
+        lastValue = currentValue;
+        lastChangeIndex = index;
+    });
+    appendFinalKeyframe(keyTimes, keyValues);
+    if (keyValues.length <= 1 || keyValues.every((value) => value === keyValues[0]))
+        return null;
+    return {
+        keyTimes: keyTimes.join(';'),
+        values: keyValues.join(';')
+    };
+};
+const appendKeyframe = (keyTimes, values, time, value) => {
+    if (time === keyTimes[keyTimes.length - 1]) {
+        values[values.length - 1] = value;
+        return;
+    }
+    keyTimes.push(time);
+    values.push(value);
+};
+const appendFinalKeyframe = (keyTimes, values) => {
+    if (keyTimes[keyTimes.length - 1] !== 1) {
+        keyTimes.push(1);
+        values.push(values[values.length - 1]);
+    }
+};
+const frameToKeyTime = (frameIndex, totalFrames) => Number((Math.min(frameIndex, Math.max(totalFrames - 1, 1)) / Math.max(totalFrames - 1, 1)).toFixed(_core_constants__WEBPACK_IMPORTED_MODULE_0__.BOMBERMAN_SVG.PRECISION));
+
+
+/***/ },
+
+/***/ "./src/bomberman/renderers/svg.ts"
+/*!****************************************!*\
+  !*** ./src/bomberman/renderers/svg.ts ***!
+  \****************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Renderer: () => (/* binding */ Renderer)
+/* harmony export */ });
+/* harmony import */ var _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../shared/utils/utils */ "./src/shared/utils/utils.ts");
+/* harmony import */ var _core_constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../core/constants */ "./src/bomberman/core/constants.ts");
+/* harmony import */ var _animation__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./animation */ "./src/bomberman/renderers/animation.ts");
+
+
+
+const EXPLOSION_SPRITE_SIZE = _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE * _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.EXPLOSION_SPRITE_CELL_SPAN + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE * _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.EXPLOSION_SPRITE_GAP_SPAN;
+const PLAYER_SPRITE_CHAINS = {
+    1: {
+        down: [
+            { id: 'bm-player-1-down-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkDown0 },
+            { id: 'bm-player-1-down-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkDown1 },
+            { id: 'bm-player-1-down-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkDown2 },
+            { id: 'bm-player-1-down-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkDown3 }
+        ],
+        up: [
+            { id: 'bm-player-1-up-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkUp0 },
+            { id: 'bm-player-1-up-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkUp1 },
+            { id: 'bm-player-1-up-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkUp2 },
+            { id: 'bm-player-1-up-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkUp3 }
+        ],
+        left: [
+            { id: 'bm-player-1-left-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight0, flipX: true },
+            { id: 'bm-player-1-left-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight1, flipX: true },
+            { id: 'bm-player-1-left-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight2, flipX: true },
+            { id: 'bm-player-1-left-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight3, flipX: true },
+            { id: 'bm-player-1-left-4', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight4, flipX: true },
+            { id: 'bm-player-1-left-5', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight5, flipX: true }
+        ],
+        right: [
+            { id: 'bm-player-1-right-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight0 },
+            { id: 'bm-player-1-right-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight1 },
+            { id: 'bm-player-1-right-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight2 },
+            { id: 'bm-player-1-right-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight3 },
+            { id: 'bm-player-1-right-4', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight4 },
+            { id: 'bm-player-1-right-5', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.walkRight5 }
+        ]
+    },
+    2: {
+        down: [
+            { id: 'bm-player-2-down-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkDown0 },
+            { id: 'bm-player-2-down-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkDown1 },
+            { id: 'bm-player-2-down-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkDown2 },
+            { id: 'bm-player-2-down-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkDown3 }
+        ],
+        up: [
+            { id: 'bm-player-2-up-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkUp0 },
+            { id: 'bm-player-2-up-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkUp1 },
+            { id: 'bm-player-2-up-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkUp2 },
+            { id: 'bm-player-2-up-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkUp3 }
+        ],
+        left: [
+            { id: 'bm-player-2-left-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight0, flipX: true },
+            { id: 'bm-player-2-left-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight1, flipX: true },
+            { id: 'bm-player-2-left-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight2, flipX: true },
+            { id: 'bm-player-2-left-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight3, flipX: true },
+            { id: 'bm-player-2-left-4', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight4, flipX: true },
+            { id: 'bm-player-2-left-5', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight5, flipX: true }
+        ],
+        right: [
+            { id: 'bm-player-2-right-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight0 },
+            { id: 'bm-player-2-right-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight1 },
+            { id: 'bm-player-2-right-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight2 },
+            { id: 'bm-player-2-right-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight3 },
+            { id: 'bm-player-2-right-4', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight4 },
+            { id: 'bm-player-2-right-5', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.walkRight5 }
+        ]
+    }
+};
+const PLAYER_DEATH_SPRITE_CHAINS = {
+    1: [
+        { id: 'bm-player-1-death-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.death0 },
+        { id: 'bm-player-1-death-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.death1 },
+        { id: 'bm-player-1-death-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.death2 },
+        { id: 'bm-player-1-death-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.death3 },
+        { id: 'bm-player-1-death-4', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.player.death4 }
+    ],
+    2: [
+        { id: 'bm-player-2-death-0', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.death0 },
+        { id: 'bm-player-2-death-1', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.death1 },
+        { id: 'bm-player-2-death-2', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.death2 },
+        { id: 'bm-player-2-death-3', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.plunderBomber.death3 }
+    ]
+};
+const BOMB_SPRITE = { id: 'bm-bomb', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.explosions.bombs.fuse0 };
+const EXPLOSION_SPRITE_CHAIN = [
+    { id: 'bm-explosion-thin-left', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.explosions.crosses.thinLeft },
+    { id: 'bm-explosion-full-left', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.explosions.crosses.fullLeft },
+    { id: 'bm-explosion-full-right', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.explosions.crosses.fullRight },
+    { id: 'bm-explosion-thin-right', frame: _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SPRITE_SETS.explosions.crosses.thinRight }
+];
+const toSvgX = (gx) => gx * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+const toSvgY = (gy) => gy * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.HEADER_HEIGHT;
+const generateAnimatedSVG = (store) => {
+    var _a, _b, _c, _d, _e;
+    const svgWidth = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE);
+    const svgHeight = _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.HEADER_HEIGHT;
+    const totalFrames = store.gameHistory.length;
+    const totalDurationMs = Math.max((totalFrames * _core_constants__WEBPACK_IMPORTED_MODULE_1__.DELTA_TIME) / _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.DURATION_SPEED_DIVISOR, _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.MIN_DURATION_MS);
+    const theme = _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store);
+    const cellEventsByPosition = indexCellEvents(store.cellEvents);
+    let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" color-interpolation="sRGB">`;
+    svg += `<style>image { image-rendering: pixelated; image-rendering: -moz-crisp-edges; }</style>`;
+    svg += buildSpriteDefs();
+    svg += `<rect width="100%" height="100%" fill="${theme.gridBackground}"/>`;
+    let lastMonth = '';
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        if (store.monthLabels[x] !== lastMonth) {
+            const xPos = x * (_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_1__.GAP_SIZE) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+            svg += `<text x="${xPos}" y="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.MONTH_LABEL_Y}" text-anchor="middle" font-size="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.MONTH_LABEL_FONT_SIZE}" fill="${theme.textColor}">${store.monthLabels[x]}</text>`;
+            lastMonth = store.monthLabels[x];
+        }
+    }
+    for (let x = 0; x < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_WIDTH; x++) {
+        for (let y = 0; y < _core_constants__WEBPACK_IMPORTED_MODULE_1__.GRID_HEIGHT; y++) {
+            const colorAnim = getCellAnimationData(store, x, y, cellEventsByPosition);
+            svg += `<rect id="c-${x}-${y}" x="${toSvgX(x)}" y="${toSvgY(y)}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE}" rx="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.CELL_RADIUS}" fill="${(_b = (_a = store.initialColors[x]) === null || _a === void 0 ? void 0 : _a[y]) !== null && _b !== void 0 ? _b : theme.intensityColors[0]}">`;
+            if (colorAnim) {
+                svg += `<animate attributeName="fill" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+					values="${colorAnim.values}" keyTimes="${colorAnim.keyTimes}"/>`;
+            }
+            svg += `</rect>`;
+        }
+    }
+    for (const bombEvent of collectBombs(store)) {
+        const opacityAnim = buildVisibilityAnimation(totalFrames, bombEvent.startFrame, bombEvent.endFrameExclusive);
+        const initialOpacity = bombEvent.startFrame === 0 ? '1' : '0';
+        svg += `<g id="bomb-${bombEvent.bomb.id}" opacity="${initialOpacity}" transform="translate(${centerPosition(bombEvent.bomb.x, bombEvent.bomb.y)})" style="will-change: opacity;">`;
+        if (opacityAnim) {
+            svg += `<animate attributeName="opacity" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+				keyTimes="${opacityAnim.keyTimes}" values="${opacityAnim.values}"/>`;
+        }
+        svg += `<use x="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.BOMB_X}" y="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.BOMB_Y}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.BOMB_WIDTH}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.BOMB_HEIGHT}" href="${getDefaultBombRef()}" style="will-change: transform;">
+			<animateTransform attributeName="transform" type="scale" calcMode="linear" dur="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.BOMB_PULSE_DURATION_MS}ms" repeatCount="indefinite"
+				keyTimes="0;0.5;1" values="1;${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.BOMB_PULSE_SCALE};1"/>
+		</use></g>`;
+    }
+    for (const explosion of store.explosionEvents) {
+        const opacityAnim = getExplosionOpacityAnimation(store, explosion);
+        const spriteAnim = getExplosionSpriteAnimation(store, explosion);
+        const cx = toSvgX(explosion.x) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+        const cy = toSvgY(explosion.y) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2;
+        const x = cx - EXPLOSION_SPRITE_SIZE / 2;
+        const y = cy - EXPLOSION_SPRITE_SIZE / 2;
+        svg += `<use x="${x}" y="${y}" width="${EXPLOSION_SPRITE_SIZE}" height="${EXPLOSION_SPRITE_SIZE}" href="${getDefaultExplosionRef()}" opacity="0" style="will-change: opacity;">`;
+        if (spriteAnim) {
+            svg += `<animate attributeName="href" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+				keyTimes="${spriteAnim.keyTimes}" values="${spriteAnim.values}"/>`;
+        }
+        if (opacityAnim) {
+            svg += `<animate attributeName="opacity" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+				keyTimes="${opacityAnim.keyTimes}" values="${opacityAnim.values}"/>`;
+        }
+        svg += `</use>`;
+    }
+    for (const player of store.players) {
+        const positions = getPlayerPositions(store, player.id);
+        const opacities = getPlayerOpacities(store, player.id);
+        const spriteRefs = getPlayerSpriteRefs(store, player.id);
+        const positionAnim = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.buildStepwiseLinearAnimation)(positions);
+        const opacityAnim = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.buildChangingValuesAnimation)(opacities);
+        const spriteAnim = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.buildChangingValuesAnimation)(spriteRefs);
+        svg += `<use id="player-${player.id}" x="${-_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.PLAYER_SPRITE_WIDTH / 2}" y="${-_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.PLAYER_SPRITE_HEIGHT + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2}" width="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.PLAYER_SPRITE_WIDTH}" height="${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.PLAYER_SPRITE_HEIGHT}" href="${(_c = spriteRefs[0]) !== null && _c !== void 0 ? _c : getDefaultPlayerRef(player.id)}" opacity="${(_d = opacities[0]) !== null && _d !== void 0 ? _d : '0'}" transform="translate(${(_e = positions[0]) !== null && _e !== void 0 ? _e : '0 0'})" style="will-change: transform, opacity;">`;
+        if (spriteAnim) {
+            svg += `<animate attributeName="href" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+				keyTimes="${spriteAnim.keyTimes}" values="${spriteAnim.values}"/>`;
+        }
+        if (opacityAnim) {
+            svg += `<animate attributeName="opacity" calcMode="discrete" dur="${totalDurationMs}ms" repeatCount="indefinite"
+				keyTimes="${opacityAnim.keyTimes}" values="${opacityAnim.values}"/>`;
+        }
+        if (positionAnim) {
+            svg += `<animateTransform attributeName="transform" type="translate" calcMode="linear" dur="${totalDurationMs}ms" repeatCount="indefinite"
+				keyTimes="${positionAnim.keyTimes}" values="${positionAnim.values}"/>`;
+        }
+        svg += `</use>`;
+    }
+    svg += '</svg>';
+    return svg;
+};
+const getCellAnimationData = (store, x, y, eventsByPosition) => {
+    var _a, _b;
+    const totalFrames = store.gameHistory.length;
+    const initialColor = (_b = (_a = store.initialColors[x]) === null || _a === void 0 ? void 0 : _a[y]) !== null && _b !== void 0 ? _b : _shared_utils_utils__WEBPACK_IMPORTED_MODULE_0__.Utils.getCurrentTheme(store).intensityColors[0];
+    const events = eventsByPosition.get(cellEventKey(x, y));
+    if (!events || events.length === 0)
+        return null;
+    const keyTimes = [0];
+    const values = [initialColor];
+    for (const event of events) {
+        const time = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.frameToKeyTime)(event.frameIndex, totalFrames);
+        if (time !== keyTimes[keyTimes.length - 1]) {
+            keyTimes.push(time);
+            values.push(event.color);
+        }
+        else {
+            values[values.length - 1] = event.color;
+        }
+    }
+    if (keyTimes[keyTimes.length - 1] !== 1) {
+        keyTimes.push(1);
+        values.push(values[values.length - 1]);
+    }
+    if (values.length <= 1 || values.every((v) => v === values[0]))
+        return null;
+    return { keyTimes: keyTimes.join(';'), values: values.join(';') };
+};
+const collectBombs = (store) => {
+    const bombs = new Map();
+    for (let frameIndex = 0; frameIndex < store.gameHistory.length; frameIndex++) {
+        const frame = store.gameHistory[frameIndex];
+        for (const bomb of frame.bombs) {
+            const existing = bombs.get(bomb.id);
+            if (existing) {
+                existing.endFrameExclusive = frameIndex + 1;
+            }
+            else {
+                bombs.set(bomb.id, {
+                    bomb,
+                    startFrame: frameIndex,
+                    endFrameExclusive: frameIndex + 1
+                });
+            }
+        }
+    }
+    return Array.from(bombs.values());
+};
+const getPlayerPositions = (store, playerId) => store.gameHistory.map((frame) => {
+    const player = frame.players.find((candidate) => candidate.id === playerId);
+    return player ? centerPosition(player.x, player.y) : '0 0';
+});
+const getPlayerSpriteRefs = (store, playerId) => store.gameHistory.map((frame, frameIndex) => {
+    const player = frame.players.find((candidate) => candidate.id === playerId);
+    if (!player)
+        return getDefaultPlayerRef(playerId);
+    if (!player.alive) {
+        const deathFrameIndex = getPlayerDeathFrameIndex(store, playerId);
+        if (deathFrameIndex !== null) {
+            const chain = PLAYER_DEATH_SPRITE_CHAINS[playerId];
+            const spriteIndex = Math.min(Math.max(frameIndex - deathFrameIndex, 0), chain.length - 1);
+            return toSpriteRef(chain[spriteIndex]);
+        }
+    }
+    const previousPlayer = frameIndex > 0 ? store.gameHistory[frameIndex - 1].players.find((candidate) => candidate.id === playerId) : undefined;
+    const moving = Boolean(previousPlayer && (previousPlayer.x !== player.x || previousPlayer.y !== player.y));
+    const cycle = PLAYER_SPRITE_CHAINS[playerId][player.direction];
+    const spriteIndex = moving ? Math.floor(frameIndex / _core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.PLAYER_SPRITE_FRAME_INTERVAL) % cycle.length : 0;
+    return toSpriteRef(cycle[spriteIndex]);
+});
+const getPlayerOpacities = (store, playerId) => store.gameHistory.map((frame, frameIndex) => {
+    const player = frame.players.find((candidate) => candidate.id === playerId);
+    if (!player)
+        return '0';
+    if (player.alive)
+        return '1';
+    const deathFrameIndex = getPlayerDeathFrameIndex(store, playerId);
+    if (deathFrameIndex === null)
+        return '0';
+    const deathFrame = frameIndex - deathFrameIndex;
+    return deathFrame >= 0 && deathFrame < PLAYER_DEATH_SPRITE_CHAINS[playerId].length ? '1' : '0';
+});
+const getPlayerDeathFrameIndex = (store, playerId) => {
+    for (let frameIndex = 1; frameIndex < store.gameHistory.length; frameIndex++) {
+        const previousPlayer = store.gameHistory[frameIndex - 1].players.find((candidate) => candidate.id === playerId);
+        const currentPlayer = store.gameHistory[frameIndex].players.find((candidate) => candidate.id === playerId);
+        if ((previousPlayer === null || previousPlayer === void 0 ? void 0 : previousPlayer.alive) && currentPlayer && !currentPlayer.alive)
+            return frameIndex;
+    }
+    return null;
+};
+const centerPosition = (x, y) => `${toSvgX(x) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2} ${toSvgY(y) + _core_constants__WEBPACK_IMPORTED_MODULE_1__.CELL_SIZE / 2}`;
+const getExplosionSpriteAnimation = (store, explosion) => {
+    const totalFrames = store.gameHistory.length;
+    const keyTimes = [0];
+    const values = [getDefaultExplosionRef()];
+    const visibleFrames = Math.max(explosion.remainingFrames, 1);
+    for (let localFrame = 0; localFrame < visibleFrames; localFrame++) {
+        const frameIndex = explosion.frameIndex + localFrame;
+        const time = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.frameToKeyTime)(frameIndex, totalFrames);
+        const spriteIndex = Math.min(localFrame, EXPLOSION_SPRITE_CHAIN.length - 1);
+        (0,_animation__WEBPACK_IMPORTED_MODULE_2__.appendKeyframe)(keyTimes, values, time, toSpriteRef(EXPLOSION_SPRITE_CHAIN[spriteIndex]));
+    }
+    (0,_animation__WEBPACK_IMPORTED_MODULE_2__.appendFinalKeyframe)(keyTimes, values);
+    if (values.length <= 1 || values.every((v) => v === values[0]))
+        return null;
+    return { keyTimes: keyTimes.join(';'), values: values.join(';') };
+};
+const getExplosionOpacityAnimation = (store, explosion) => {
+    const totalFrames = store.gameHistory.length;
+    const start = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.frameToKeyTime)(explosion.frameIndex, totalFrames);
+    const end = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.frameToKeyTime)(explosion.frameIndex + explosion.remainingFrames, totalFrames);
+    return {
+        keyTimes: `0;${start};${start};${end};${end};1`,
+        values: `0;0;${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.EXPLOSION_OPACITY};${_core_constants__WEBPACK_IMPORTED_MODULE_1__.BOMBERMAN_SVG.EXPLOSION_OPACITY};0;0`
+    };
+};
+const buildVisibilityAnimation = (totalFrames, startFrame, endFrameExclusive) => {
+    if (totalFrames <= 1 || (startFrame === 0 && endFrameExclusive >= totalFrames))
+        return null;
+    const start = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.frameToKeyTime)(startFrame, totalFrames);
+    const end = (0,_animation__WEBPACK_IMPORTED_MODULE_2__.frameToKeyTime)(endFrameExclusive, totalFrames);
+    return {
+        keyTimes: `0;${start};${start};${end};${end};1`,
+        values: '0;0;1;1;0;0'
+    };
+};
+const indexCellEvents = (events) => {
+    const eventsByPosition = new Map();
+    for (const event of events) {
+        const key = cellEventKey(event.x, event.y);
+        const cellEvents = eventsByPosition.get(key);
+        if (cellEvents) {
+            cellEvents.push(event);
+        }
+        else {
+            eventsByPosition.set(key, [event]);
+        }
+    }
+    return eventsByPosition;
+};
+const cellEventKey = (x, y) => `${x}:${y}`;
+const buildSpriteDefs = () => {
+    const symbols = new Map();
+    for (const playerChains of Object.values(PLAYER_SPRITE_CHAINS)) {
+        for (const cycle of Object.values(playerChains)) {
+            for (const sprite of cycle)
+                symbols.set(sprite.id, sprite);
+        }
+    }
+    for (const cycle of Object.values(PLAYER_DEATH_SPRITE_CHAINS)) {
+        for (const sprite of cycle)
+            symbols.set(sprite.id, sprite);
+    }
+    symbols.set(BOMB_SPRITE.id, BOMB_SPRITE);
+    for (const sprite of EXPLOSION_SPRITE_CHAIN)
+        symbols.set(sprite.id, sprite);
+    const defs = Array.from(symbols.entries())
+        .map(([id, sprite]) => `<symbol id="${id}" viewBox="0 0 ${sprite.frame.width} ${sprite.frame.height}" overflow="visible">
+				<image width="${sprite.frame.width}" height="${sprite.frame.height}" href="${sprite.frame.data}" preserveAspectRatio="xMidYMid meet" style="image-rendering: pixelated;"${sprite.flipX ? ` transform="translate(${sprite.frame.width} 0) scale(-1 1)"` : ''}/>
+			</symbol>`)
+        .join('');
+    return `<defs>${defs}</defs>`;
+};
+const toSpriteRef = (sprite) => `#${sprite.id}`;
+const getDefaultPlayerRef = (playerId) => toSpriteRef(PLAYER_SPRITE_CHAINS[playerId].down[0]);
+const getDefaultBombRef = () => toSpriteRef(BOMB_SPRITE);
+const getDefaultExplosionRef = () => toSpriteRef(EXPLOSION_SPRITE_CHAIN[0]);
+const Renderer = {
+    generateAnimatedSVG
+};
+
+
+/***/ },
+
+/***/ "./src/breakout/core/constants.ts"
 /*!****************************************!*\
   !*** ./src/breakout/core/constants.ts ***!
   \****************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -62,13 +1691,13 @@ const PADDLE_COLOR = '#ffffff';
 const BALL_SHADOW_COLOR = '#aaaaaa';
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/breakout/core/game.ts":
+/***/ "./src/breakout/core/game.ts"
 /*!***********************************!*\
   !*** ./src/breakout/core/game.ts ***!
   \***********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -347,13 +1976,13 @@ const BreakoutGame = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/breakout/core/store.ts":
+/***/ "./src/breakout/core/store.ts"
 /*!************************************!*\
   !*** ./src/breakout/core/store.ts ***!
   \************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -376,13 +2005,13 @@ const BreakoutStore = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/breakout/index.ts":
+/***/ "./src/breakout/index.ts"
 /*!*******************************!*\
   !*** ./src/breakout/index.ts ***!
   \*******************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -444,13 +2073,13 @@ class BreakoutRenderer {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/breakout/renderers/svg.ts":
+/***/ "./src/breakout/renderers/svg.ts"
 /*!***************************************!*\
   !*** ./src/breakout/renderers/svg.ts ***!
   \***************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -611,13 +2240,13 @@ const buildChangingValuesAnimation = (store, values) => {
 const BreakoutSVG = { generateAnimatedSVG };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/galaga/core/constants.ts":
+/***/ "./src/galaga/core/constants.ts"
 /*!**************************************!*\
   !*** ./src/galaga/core/constants.ts ***!
   \**************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -671,13 +2300,13 @@ const BULLET_IMAGE_DATA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAC
 const SHIP_IMAGE_DATA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABGCAYAAAB8MJLDAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGYktHRAD/AP8A/6C9p5MAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAHdElNRQfqBQgWJQn/24JaAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI2LTA1LTA4VDIyOjM1OjQ2KzAwOjAwKpfJ5AAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNi0wNS0wOFQyMjozNTo0NiswMDowMFvKcVgAAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjYtMDUtMDhUMjI6Mzc6MDkrMDA6MDB6KP6pAAANdklEQVR42u2cW6wdVRnH/2vNfc++HYFKe7S0FQEDaEKjlEhaHyRi0xJJrCKpDyZo0EQu8kBTSwhJjSca0fhQNVFiYiMJiQqxtEAoD4fQRHIk1YJFsWAqtJyc0rP3zJ7Zc1uzfNhnrTN7z+zL2WdTovglO/md6VzWrPn+6/vWreCcw/d9nD9/HoIXFxdz7HkeGo1GjlutVhc3m80cu64Lx3Fy7DhOF7uum+Nms4lWq5XjRqPRxZ7n5XhxcRG+7+f4/Pnzkonv+yCEAEDnwPuMaRAEAADDMDCICSHQdT3HlFJomjaQFUWBqqo5VlW1ixVFybGmaaCUDmRd10EIybFhGAAwkAnnHO12G0EQYGpqCu12G2EYol6vd7Hv+4jjGLVarYs9z0OSJJIZY6hWq10sXLVSqUg2dR1xFAEAVF1HGEUghKBcLsN1XcmO40BRFNi23cXNZhOqqkrWNA2lUqmLG40GDMOAZVldvLi4CNM0YVnWhZXAfffdxw8dOgQA2LtnD766ezcBgN8//jj/7r59AIDbbrsNDz30ELlgEgjDULp6Eeu6jjAMpdv3snD1QSzcfn5+HqdPn8bp06fhOA6Eea2WPL6wsCAlEIahdPVBLNy+iAEgDEPp9r1M6/W6bD0FN5tNyY7joF6vgzEG13VzHMcxWq2WZM/zchyGIdrttizQINN1vUt6nuchjuMct1otya7rgjGWYxFh6vW6jEj1el1GrXq9DrXdboMQAsuyINg0zRxTSmEYRo4VRYGiKANZVVUAAGNsaAUwxqBpGgB0VVovi684iE3TLGTLsiSPLQHh3lnulYCqql0SGLUCshJQVbWvBISrZ/mCSUC4fZIkfSXg+/6qJSAiTpEEkiSR/D8jgSRJ3nsJCFeflAQEj1IBaZp2uf2kJNBPDoUSEG4/KQlEUbRiCURRNFEJZLlLAr7vg1KKUqkEwZZlSTZNU7JhGDkWrt6PH374YX7ixAkAwIsvvji0AmZnZ3HXXXdxANi8eTPuuOMOAgC+78sK9H1ffsVBLNze931YliU7eKVSSbIaRRFM04SmaVIrWdZ1HY7jwLIsqKoK13X7cqlUAqUUrVZL8uHDh3H06NGhLy7s5MmTOHnyJADg3LlzuPPOO5GmKYIgQLlcllypVJAkCaIo6svVahVRFA1kVeT8zWZT9gWE22fZ930EQZBjz/O62PM8hGHI5+fnwRgD51y+3Lp162AtfZVarSaPVyoVbNy0CQAQRRHeevNNAICmadKbhBsLFn0BwZqm5Vjk/70s+gL1eh3E8zxQSkEIAWNs1fzGG2/w/fv3w/d9pGmKZ599Fr7vAwAOHzqEbVu3kt6vzjgQLVXUKy+/zLfd+GkAwM6dO/HYY48R0ThSSmVDqSgKOOerZjWOYxiGIbuu/dg0Tdl17ceWZUHXdTz33HN4++23R3b7fsY5h6qqSNMUYRjCtm3JhmEgSRKI8hexaZqIomgg01qtJpMfwY7j5Fi0/L0sokCtVpP9AtHbWq0JCRR1w0UUEMwYy7Fo+XtZJEW1Wm14FOgXEQSLNFfw+vXrSbVa5WfPns29UMQ5gpTnjvM+FZAkCQzDkC12lk3THMrZlr9fFKBxHMvaLmJVVRHHMQghfVlRlI47UYpKpYLZ2VmysLBA3nnnHbJt27bcy/b+BklAURRQShHHcY4JIYjjGKqq9mUAiONYZpe9PFQCrusOlYDneVICvu9jzZo1MjyKWDxpCWRHovpJQAysTkwCqqri0Ucf5WmaAgAopSjiLVu2YHp6moya/vazrAReeeUVfvz48YHPpZTi1ltvlYnTKBIojAKiVc+yaDlvv/32oQV/8MEHsXfvXlBKu/KAlZqQQJqmmJmZwcGDB4deIzpx4r3iOM7x0Cgg3L5XAq7rjvQ2pmlKOQgdjmNZCQjdDrN+EshylwQ8z5MjrYItyyrkUqlEsNRu3QQTN6PTrfTB8T00ESw1aaKRmqQEkiSRx0sg2IMabHTC7SxCPIFOsmVZFiil8DxPun0vi3zC8zyoSZLk+vH9xvAVRZGF2AID30FV/v0zuDiDzstmM8TVSkDIqCulhoIHsJxKK3BkBYjokCSJ9MQiTtMUSZIsS6Co5V+tBLKDIeOY6JRNWgLZiEA9zwMhREqAEIJSqZTjpUgxUooXRREURYFhGBORgKIoXRIYZFkJlEolEEJybNu2ZCoKqCgKRuFRTLjuJKLASu8jysgYG4lptVqVEhDsum6O0zQdWQIi5LxXEkjTFNVqVbp9LwsJVKvV5Sig6zrOnj0ra7yIs27IP1BHetEGAABhKfCvM0Da8RQhgXcrCnBKwTesB1c63WPeeAtYWBTP5owxIsYLwjBEo9Ho4lqtJiWgCpc4cuQI37Vr1+iFu+PLCPbtk20Cv/JKjqUOkJh/m5QE0jTtug/f8CG0jz8pnx0fOMCxZw8AYHp6GhjcxcDTTz+NrVu3ki4JtNvtsQvaa6JPPikJZIfKJ2FicUSXBMRg4iQsiiI59z8JCQielJmmmZeAGG6qgGAeH5Yn/xMJPo4zK3rA/v37MTMzw0VljGuHDx/G1NTU2Pd5DdOYxnLkuhxv4QyYfFfGGNRqtYp2u52RAIGF5XBvYuWjO6LTsVpjjK1KmlbPuwjKSoCKIazV9Nv/20xIoNVqQRV96UmN433w0ktx6MgREEJz//bhtZcSg+afwzhHstRuf/SKK8jc8b/kWnGepvjyri/i9VOnVl3G7OhygQRWZ4auY+PGTYW1aRACWnCcQ3Yyoes6NmzYUHi9ZVnjx9SMve8lYFnWsgREgiElYOiIHrpfnhyTBLj/rrEfpmWklVWZ8sejXHlhDgCQbL4W/IvbC796vIpEKvrJA4iCTBj+/l6g2ehaJKVWKpUuCXBNRfKt3bIw7NQpjvtX9uCsqX2aFuWFOagHloa4dn8B6a7thefFq3B6dvM2JOvWLWerP93P0WxICVQqlf9LIC+BMez1xYinN+9FNQhQvqjS9zzl6AuczJ/rPO/V1+Vx+vppqL99ggMAr9fAtn+msDD2zfeieu15BHYJr54L+VUXG2MVeqAExrFT50OwDZ+CDkCr9s/Z1R8/AmU2v0aAHnsJ+rGXAADpNVeAbf9M4fXaxs3QKyEiAH9bCHDVxeOl7/+XQJEEVmrnfIaTCyEHgEaQ4mOXdL7GGnu0Xhtfuwb8oikAAFlsgrw1fDZ505QOkUd5USqfP++N11HqkoBYHT6q/fbEIh4/2NHxTR+p4KndneSHA4UToL0W3/01GW3Ug49z/VsPDL3mwI4Pyfzy3qfO8H3PdSqtPffOisrebreXJSBWZr8fJeC6LlY0WnHtNddg544dAIDj2lX485I/0lHbYoUC6lL3NHsRIcvHRxx4pQRQlu5x/Sc/iS2f6IwIHXrySfx1aVHWKLYiCXx3717s3LGjs2SFAywVIXS0h4W/+zkBT3MvmnxlJ0m+JBKh0W72g5vWkpnPru1UBr0SCul8mBtvvJFvX/pI/SwrAdV1XWiaNpIEsrkCJQBVVhiGVQVAwRemtPNbgSmUYDRfyVuXBIYlQNVaDd/4+tcBABsuu2zMR144m163TpbXtu2B5xJCoJbL5YESuOTii8mPf/SjkQtA317gtdvvln9Hh35FULLGe5uEofb5r3GwTpiLfzkDvmn9wC92+eWXDy2vkEC5XF6WgFhAvGqLIqhzy41QnDCM3Z/hHOpLJ4C4UwGJH4x/r4yJaTLXdUGzefH7xbL9n5wEwjDE3ffcs6La+Dh0fBNLnaCW964VXPvhL8Cn6hwAfo0W/oRwRdc3Gw0AQyQQxzF++cgjK7rxLSjh27jkXXtxYcofnpE8i3P4Dcar7KwEZBSo1+u44YYbkKapXLMvpqTEOp0sp2mKubm591w6qqriuuuuk1NxjLFCTpJEznVWKh1v7ZLA5s2bybFjx0beOBkEAdauXcuHTVg8ffBR/m8zH7G3XH89rr76agIA/3jtNf7888/nztmYUuxYGrXuZ9VqFc888wxZ6cZJIQE0m005BT0qB0EgtqlyAPwWlDjHZYW/z8EqWhvJfzAzwz3Hgec4+PmBA4Xn3Drgvl+FzQHwqakpHkURgiBAs9mU0/KjsirGyMVMLJBfmd3LvWt2BtlqBDLqtaI8g9YPZlmUnVK6LIFWqyX3C4itLln2fR9hGHZJQFgDKV7s0yL/HeNPkc0h7Hvfc1ie0Gm329A0DeVyWUqgXC5Lt+9lsV+gXC5DdRwHuq7LlRO6rstNy70sNjAbhtGVZs4iwPVY/fL4XnsTbOh9OeewbRuMMTiOA9u2kSQJHMdBuVwu5Gq1ijiO4TgO1KK1M2JTQT8WLlcul8ee/dUyG6hUVe00SGOY2EaTjVAABnJ2zdN7tn3e0HUkYvu8piFcWnl+wbfPN5tN6LoOTdPgeV6OxV6ALIula0VMKZUbGAWL2dgiBiB3m3DOC1nsEslyqVQCY6yQxaapLNu2jTiOc6wOW0rWTwJZFucP2p8jXLSXh7lrv2RMbMgqOmeY22eZ2rbdtYZWLCPv5TRN0W63c8wYQxAEksXeniwX1bxt23LrmuA4jnMchiEYYzkOgkByu91GmqY5FuP/vSz+kxXbtvEfwITwAX3FN6kAAAAASUVORK5CYII=';
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/galaga/core/game.ts":
+/***/ "./src/galaga/core/game.ts"
 /*!*********************************!*\
   !*** ./src/galaga/core/game.ts ***!
   \*********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -877,13 +2506,13 @@ const updateGame = (store) => {
 const GalagaGame = { startGame, stopGame };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/galaga/core/store.ts":
+/***/ "./src/galaga/core/store.ts"
 /*!**********************************!*\
   !*** ./src/galaga/core/store.ts ***!
   \**********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -908,13 +2537,13 @@ const GalagaStore = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/galaga/index.ts":
+/***/ "./src/galaga/index.ts"
 /*!*****************************!*\
   !*** ./src/galaga/index.ts ***!
   \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -976,13 +2605,13 @@ class GalagaRenderer {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/galaga/renderers/svg.ts":
+/***/ "./src/galaga/renderers/svg.ts"
 /*!*************************************!*\
   !*** ./src/galaga/renderers/svg.ts ***!
   \*************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1271,13 +2900,13 @@ const buildChangingValuesAnimation = (store, values) => {
 const GalagaSVG = { generateAnimatedSVG };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/core/constants.ts":
+/***/ "./src/pacman/core/constants.ts"
 /*!**************************************!*\
   !*** ./src/pacman/core/constants.ts ***!
   \**************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1381,13 +3010,13 @@ const hasWall = (x, y, direction) => {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/core/game.ts":
+/***/ "./src/pacman/core/game.ts"
 /*!*********************************!*\
   !*** ./src/pacman/core/game.ts ***!
   \*********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1524,7 +3153,7 @@ const determineGhostName = (index) => {
 };
 /* ---------- update per frame ---------- */
 const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b;
     store.frameCount++;
     if (store.pacman.deadRemainingDuration > 0) {
         store.pacman.deadRemainingDuration--;
@@ -1537,8 +3166,13 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
         store.pacman.powerupRemainingDuration--;
         if (store.pacman.powerupRemainingDuration === 0) {
             store.ghosts.forEach((g) => {
-                if (g.name !== 'eyes')
+                var _a, _b;
+                if (g.name === 'eyes')
+                    return;
+                const atBoundary = ((_a = g.subX) !== null && _a !== void 0 ? _a : 0) === 0 && ((_b = g.subY) !== null && _b !== void 0 ? _b : 0) === 0;
+                if (atBoundary) {
                     g.scared = false;
+                }
             });
             store.pacman.points = 0;
         }
@@ -1575,14 +3209,6 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
         return;
     }
     _movement_pacman_movement__WEBPACK_IMPORTED_MODULE_2__.PacmanMovement.movePacman(store);
-    const cell = (_b = store.grid[store.pacman.x]) === null || _b === void 0 ? void 0 : _b[store.pacman.y];
-    if (cell && cell.level === 'FOURTH_QUARTILE' && store.pacman.powerupRemainingDuration === 0) {
-        store.pacman.powerupRemainingDuration = 30;
-        store.ghosts.forEach((g) => {
-            if (g.name !== 'eyes')
-                g.scared = true;
-        });
-    }
     checkCollisions(store);
     if (store.pacman.deadRemainingDuration === 0) {
         _movement_ghosts_movement__WEBPACK_IMPORTED_MODULE_1__.GhostsMovement.moveGhosts(store);
@@ -1596,7 +3222,7 @@ const updateGame = (store) => __awaiter(void 0, void 0, void 0, function* () {
         store.config.gameStatsCallback({
             totalScore: store.pacman.totalPoints,
             steps: store.aliveSteps,
-            ghostsEaten: (_c = store.pacman.ghostsEaten) !== null && _c !== void 0 ? _c : 0
+            ghostsEaten: (_b = store.pacman.ghostsEaten) !== null && _b !== void 0 ? _b : 0
         });
     }
     pushSnapshot(store);
@@ -1623,6 +3249,8 @@ const checkCollisions = (store) => {
                 ghost.name = 'eyes';
                 ghost.scared = false;
                 ghost.target = { x: 26, y: 3 };
+                ghost.subX = 0;
+                ghost.subY = 0;
                 store.pacman.points += 10;
                 store.pacman.ghostsEaten = ((_a = store.pacman.ghostsEaten) !== null && _a !== void 0 ? _a : 0) + 1;
             }
@@ -1650,13 +3278,13 @@ const Game = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/core/store.ts":
+/***/ "./src/pacman/core/store.ts"
 /*!**********************************!*\
   !*** ./src/pacman/core/store.ts ***!
   \**********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1688,13 +3316,13 @@ const Store = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/index.ts":
+/***/ "./src/pacman/index.ts"
 /*!*****************************!*\
   !*** ./src/pacman/index.ts ***!
   \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1764,13 +3392,13 @@ class PacmanRenderer {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/movement/ghosts-movement.ts":
+/***/ "./src/pacman/movement/ghosts-movement.ts"
 /*!************************************************!*\
   !*** ./src/pacman/movement/ghosts-movement.ts ***!
   \************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1944,6 +3572,24 @@ const moveGhostInHouse = (ghost, store) => {
 const moveGhostToScatterTarget = (ghost, store) => {
     const target = SCATTER_CORNERS[ghost.name] || SCATTER_CORNERS['blinky'];
     ghost.target = target;
+    // At the corner, step to an adjacent cell so BFS loops the ghost back next frame
+    if (ghost.x === target.x && ghost.y === target.y) {
+        const moves = _movement_utils__WEBPACK_IMPORTED_MODULE_1__.MovementUtils.getValidMoves(ghost.x, ghost.y);
+        if (moves.length > 0) {
+            const [dx, dy] = moves[0];
+            ghost.x += dx;
+            ghost.y += dy;
+            if (dx > 0)
+                ghost.direction = 'right';
+            else if (dx < 0)
+                ghost.direction = 'left';
+            else if (dy > 0)
+                ghost.direction = 'down';
+            else if (dy < 0)
+                ghost.direction = 'up';
+        }
+        return;
+    }
     const nextMove = BFSTargetLocation(ghost.x, ghost.y, target.x, target.y, ghost.direction);
     if (nextMove) {
         ghost.x = nextMove.x;
@@ -1955,6 +3601,43 @@ const moveGhostToScatterTarget = (ghost, store) => {
 };
 // When scared, ghosts move randomly but with some intelligence
 const moveScaredGhost = (ghost, store) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    // Ghosts move at half speed during power-up (one cell per two frames)
+    const SCARED_SPEED = 0.5;
+    const subX = (_a = ghost.subX) !== null && _a !== void 0 ? _a : 0;
+    const subY = (_b = ghost.subY) !== null && _b !== void 0 ? _b : 0;
+    const atBoundary = subX === 0 && subY === 0;
+    if (!atBoundary) {
+        const dirX = subX > 0 ? 1 : subX < 0 ? -1 : 0;
+        const dirY = subY > 0 ? 1 : subY < 0 ? -1 : 0;
+        ghost.subX = subX + dirX * SCARED_SPEED;
+        ghost.subY = subY + dirY * SCARED_SPEED;
+        if (((_c = ghost.subX) !== null && _c !== void 0 ? _c : 0) >= 1) {
+            ghost.x += 1;
+            ghost.subX = 0;
+        }
+        else if (((_d = ghost.subX) !== null && _d !== void 0 ? _d : 0) <= -1) {
+            ghost.x -= 1;
+            ghost.subX = 0;
+        }
+        if (((_e = ghost.subY) !== null && _e !== void 0 ? _e : 0) >= 1) {
+            ghost.y += 1;
+            ghost.subY = 0;
+        }
+        else if (((_f = ghost.subY) !== null && _f !== void 0 ? _f : 0) <= -1) {
+            ghost.y -= 1;
+            ghost.subY = 0;
+        }
+        const nowAtBoundary = ((_g = ghost.subX) !== null && _g !== void 0 ? _g : 0) === 0 && ((_h = ghost.subY) !== null && _h !== void 0 ? _h : 0) === 0;
+        if (nowAtBoundary && store.pacman.powerupRemainingDuration === 0) {
+            ghost.scared = false;
+        }
+        return;
+    }
+    if (store.pacman.powerupRemainingDuration === 0) {
+        ghost.scared = false;
+        return;
+    }
     // Check if you already have a target or if you have already reached the current target
     if (!ghost.target || (ghost.x === ghost.target.x && ghost.y === ghost.target.y)) {
         ghost.target = getRandomDestination(ghost.x, ghost.y);
@@ -1985,9 +3668,6 @@ const moveScaredGhost = (ghost, store) => {
     }
     // Choose a random move from the possible moves
     const [moveX, moveY] = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-    // If Pacman has power-up, ghosts move slower (60% slower)
-    if (store.pacman.powerupRemainingDuration && Math.random() < 0.6)
-        return;
     // Update ghost direction based on movement
     if (moveX > 0)
         ghost.direction = 'right';
@@ -1997,8 +3677,8 @@ const moveScaredGhost = (ghost, store) => {
         ghost.direction = 'down';
     else if (moveY < 0)
         ghost.direction = 'up';
-    ghost.x += moveX;
-    ghost.y += moveY;
+    ghost.subX = moveX * SCARED_SPEED;
+    ghost.subY = moveY * SCARED_SPEED;
 };
 // Function to get valid moves that are not reversals of the current direction
 const getValidMovesWithoutReverse = (ghost) => {
@@ -2284,13 +3964,13 @@ const GhostsMovement = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/movement/movement-utils.ts":
+/***/ "./src/pacman/movement/movement-utils.ts"
 /*!***********************************************!*\
   !*** ./src/pacman/movement/movement-utils.ts ***!
   \***********************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2357,13 +4037,13 @@ const MovementUtils = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/movement/pacman-movement.ts":
+/***/ "./src/pacman/movement/pacman-movement.ts"
 /*!************************************************!*\
   !*** ./src/pacman/movement/pacman-movement.ts ***!
   \************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2635,20 +4315,23 @@ const checkAndEatPoint = (store) => {
 };
 const activatePowerUp = (store) => {
     store.pacman.powerupRemainingDuration = _core_constants__WEBPACK_IMPORTED_MODULE_0__.PACMAN_POWERUP_DURATION;
-    store.ghosts.forEach((g) => (g.scared = true));
+    store.ghosts.forEach((g) => {
+        if (g.name !== 'eyes')
+            g.scared = true;
+    });
 };
 const PacmanMovement = {
     movePacman
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/renderers/renderer-units.ts":
+/***/ "./src/pacman/renderers/renderer-units.ts"
 /*!************************************************!*\
   !*** ./src/pacman/renderers/renderer-units.ts ***!
   \************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2672,13 +4355,13 @@ const RendererUnits = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/renderers/svg.ts":
+/***/ "./src/pacman/renderers/svg.ts"
 /*!*************************************!*\
   !*** ./src/pacman/renderers/svg.ts ***!
   \*************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2776,6 +4459,7 @@ const generateAnimatedSVG = (store) => {
 		<animateTransform attributeName="transform" type="rotate" dur="${totalDurationMs}ms" repeatCount="indefinite"
 			keyTimes="${pacmanRotationAnimation.keyTimes}"
 			values="${pacmanRotationAnimation.values}"
+			calcMode="discrete"
 			additive="sum"/>
 		<animate attributeName="d" dur="0.5s" repeatCount="indefinite"
 			values="${generatePacManPath(0.55)};${generatePacManPath(0.05)};${generatePacManPath(0.55)}"/>
@@ -2923,8 +4607,8 @@ const generatePacManPositions = (store) => {
 };
 const generatePacManRotations = (store) => {
     const pivit = _core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE / 2;
-    return store.gameHistory.map((state) => {
-        switch (state.pacman.direction) {
+    const directionToRotation = (direction) => {
+        switch (direction) {
             case 'right':
                 return `0 ${pivit} ${pivit}`;
             case 'left':
@@ -2936,6 +4620,16 @@ const generatePacManRotations = (store) => {
             default:
                 return `0 ${pivit} ${pivit}`;
         }
+    };
+    // Position interpolates linearly between snapshot[i] and snapshot[i+1]
+    // during interval i. The direction stored in snapshot[i+1] is the
+    // direction Pac-Man took during that move, so it must be displayed for
+    // the entire slide, not just at its end. Shift the rotation values one
+    // frame forward so the discrete keyframe at time keyTimes[i] holds the
+    // direction of the slide that begins there.
+    return store.gameHistory.map((_, i) => {
+        const lookaheadIndex = Math.min(i + 1, store.gameHistory.length - 1);
+        return directionToRotation(store.gameHistory[lookaheadIndex].pacman.direction);
     });
 };
 const generateCellColorValues = (store, x, y) => {
@@ -2943,12 +4637,15 @@ const generateCellColorValues = (store, x, y) => {
 };
 const generateGhostPositions = (store, ghostIndex) => {
     return store.gameHistory.map((state) => {
+        var _a, _b;
         if (ghostIndex >= state.ghosts.length) {
             return '0,0'; // Default value for cases where the ghost does not exist
         }
         const ghost = state.ghosts[ghostIndex];
-        const x = ghost.x * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE);
-        const y = ghost.y * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + 15;
+        const fx = ghost.x + ((_a = ghost.subX) !== null && _a !== void 0 ? _a : 0);
+        const fy = ghost.y + ((_b = ghost.subY) !== null && _b !== void 0 ? _b : 0);
+        const x = fx * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE);
+        const y = fy * (_core_constants__WEBPACK_IMPORTED_MODULE_0__.CELL_SIZE + _core_constants__WEBPACK_IMPORTED_MODULE_0__.GAP_SIZE) + 15;
         return `${x},${y}`;
     });
 };
@@ -3044,13 +4741,13 @@ const SVG = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/types.ts":
+/***/ "./src/pacman/types.ts"
 /*!*****************************!*\
   !*** ./src/pacman/types.ts ***!
   \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3064,13 +4761,13 @@ var PlayerStyle;
 })(PlayerStyle || (PlayerStyle = {}));
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/pacman/utils/grid.ts":
+/***/ "./src/pacman/utils/grid.ts"
 /*!**********************************!*\
   !*** ./src/pacman/utils/grid.ts ***!
   \**********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3196,13 +4893,13 @@ const Grid = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/puzzle-bobble/core/constants.ts":
+/***/ "./src/puzzle-bobble/core/constants.ts"
 /*!*********************************************!*\
   !*** ./src/puzzle-bobble/core/constants.ts ***!
   \*********************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3267,13 +4964,13 @@ const PB_COLORS = [
 ];
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/puzzle-bobble/core/game.ts":
+/***/ "./src/puzzle-bobble/core/game.ts"
 /*!****************************************!*\
   !*** ./src/puzzle-bobble/core/game.ts ***!
   \****************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3816,13 +5513,13 @@ const updateGame = (store) => {
 const PuzzleBobbleGame = { startGame, stopGame };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/puzzle-bobble/core/store.ts":
+/***/ "./src/puzzle-bobble/core/store.ts"
 /*!*****************************************!*\
   !*** ./src/puzzle-bobble/core/store.ts ***!
   \*****************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3848,13 +5545,13 @@ const PuzzleBobbleStore = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/puzzle-bobble/index.ts":
+/***/ "./src/puzzle-bobble/index.ts"
 /*!************************************!*\
   !*** ./src/puzzle-bobble/index.ts ***!
   \************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3916,13 +5613,13 @@ class PuzzleBobbleRenderer {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/puzzle-bobble/renderers/svg.ts":
+/***/ "./src/puzzle-bobble/renderers/svg.ts"
 /*!********************************************!*\
   !*** ./src/puzzle-bobble/renderers/svg.ts ***!
   \********************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4196,13 +5893,13 @@ const generateAnimatedSVG = (store) => {
 const PuzzleBobblesVG = { generateAnimatedSVG };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/shared/constants.ts":
+/***/ "./src/shared/constants.ts"
 /*!*********************************!*\
   !*** ./src/shared/constants.ts ***!
   \*********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4256,13 +5953,13 @@ const GAME_THEMES = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/shared/providers/github-contributions.ts":
+/***/ "./src/shared/providers/github-contributions.ts"
 /*!******************************************************!*\
   !*** ./src/shared/providers/github-contributions.ts ***!
   \******************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4384,13 +6081,13 @@ const fetchGithubContributionsGraphQL = (store) => __awaiter(void 0, void 0, voi
 });
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/shared/providers/gitlab-contributions.ts":
+/***/ "./src/shared/providers/gitlab-contributions.ts"
 /*!******************************************************!*\
   !*** ./src/shared/providers/gitlab-contributions.ts ***!
   \******************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4430,13 +6127,13 @@ const fetchGitlabContributions = (store) => __awaiter(void 0, void 0, void 0, fu
 });
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/shared/providers/providers.ts":
+/***/ "./src/shared/providers/providers.ts"
 /*!*******************************************!*\
   !*** ./src/shared/providers/providers.ts ***!
   \*******************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4452,13 +6149,13 @@ const Providers = {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./src/shared/utils/utils.ts":
+/***/ "./src/shared/utils/utils.ts"
 /*!***********************************!*\
   !*** ./src/shared/utils/utils.ts ***!
   \***********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4565,7 +6262,7 @@ const Utils = {
 };
 
 
-/***/ })
+/***/ }
 
 /******/ });
 /************************************************************************/
@@ -4587,6 +6284,12 @@ const Utils = {
 /******/ 	};
 /******/ 
 /******/ 	// Execute the module function
+/******/ 	if (!(moduleId in __webpack_modules__)) {
+/******/ 		delete __webpack_module_cache__[moduleId];
+/******/ 		var e = new Error("Cannot find module '" + moduleId + "'");
+/******/ 		e.code = 'MODULE_NOT_FOUND';
+/******/ 		throw e;
+/******/ 	}
 /******/ 	__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 /******/ 
 /******/ 	// Return the exports of the module
@@ -4631,16 +6334,19 @@ var __webpack_exports__ = {};
   \**********************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   BreakoutRenderer: () => (/* reexport safe */ _breakout_index__WEBPACK_IMPORTED_MODULE_0__.BreakoutRenderer),
-/* harmony export */   GalagaRenderer: () => (/* reexport safe */ _galaga_index__WEBPACK_IMPORTED_MODULE_1__.GalagaRenderer),
-/* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_2__.PacmanRenderer),
-/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_2__.PlayerStyle),
+/* harmony export */   BombermanRenderer: () => (/* reexport safe */ _bomberman_index__WEBPACK_IMPORTED_MODULE_4__.BombermanRenderer),
+/* harmony export */   BreakoutRenderer: () => (/* reexport safe */ _breakout_index__WEBPACK_IMPORTED_MODULE_1__.BreakoutRenderer),
+/* harmony export */   GalagaRenderer: () => (/* reexport safe */ _galaga_index__WEBPACK_IMPORTED_MODULE_2__.GalagaRenderer),
+/* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_0__.PacmanRenderer),
+/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_0__.PlayerStyle),
 /* harmony export */   PuzzleBobbleRenderer: () => (/* reexport safe */ _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_3__.PuzzleBobbleRenderer)
 /* harmony export */ });
-/* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./breakout/index */ "./src/breakout/index.ts");
-/* harmony import */ var _galaga_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./galaga/index */ "./src/galaga/index.ts");
-/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
+/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
+/* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./breakout/index */ "./src/breakout/index.ts");
+/* harmony import */ var _galaga_index__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./galaga/index */ "./src/galaga/index.ts");
 /* harmony import */ var _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./puzzle-bobble/index */ "./src/puzzle-bobble/index.ts");
+/* harmony import */ var _bomberman_index__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./bomberman/index */ "./src/bomberman/index.ts");
+
 
 
 
@@ -4648,11 +6354,12 @@ __webpack_require__.r(__webpack_exports__);
 
 })();
 
-var __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
-var __webpack_exports__GalagaRenderer = __webpack_exports__.GalagaRenderer;
-var __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
-var __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
-var __webpack_exports__PuzzleBobbleRenderer = __webpack_exports__.PuzzleBobbleRenderer;
-export { __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle, __webpack_exports__PuzzleBobbleRenderer as PuzzleBobbleRenderer };
+const __webpack_exports__BombermanRenderer = __webpack_exports__.BombermanRenderer;
+const __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
+const __webpack_exports__GalagaRenderer = __webpack_exports__.GalagaRenderer;
+const __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
+const __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
+const __webpack_exports__PuzzleBobbleRenderer = __webpack_exports__.PuzzleBobbleRenderer;
+export { __webpack_exports__BombermanRenderer as BombermanRenderer, __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle, __webpack_exports__PuzzleBobbleRenderer as PuzzleBobbleRenderer };
 
 //# sourceMappingURL=pacman-contribution-graph.js.map

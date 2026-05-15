@@ -128,7 +128,7 @@
 		<div class="container">
 			<div class="jumbotron">
 				<h1 class="display-4">Contribution Graph Games</h1>
-				<p class="lead">Turn your GitHub or GitLab contributions into arcade games — Pac-Man, Breakout, and more!</p>
+				<p class="lead">Turn your GitHub or GitLab contributions into arcade games — Pac-Man, Breakout, Bomberman, and more!</p>
 				<hr class="my-4" />
 				<p>
 					Visualize your contribution graph as a playable animated SVG. Pick a game, set up your preferences, and embed the result anywhere.
@@ -171,6 +171,7 @@
 								<option value="breakout">🧱 Breakout</option>
 								<option value="galaga">🚀 Galaga</option>
 								<option value="puzzle-bobble">🫧 Puzzle Bobble</option>
+								<option value="bomberman">💣 Bomberman</option>
 							</select>
 						</div>
 					</div>
@@ -361,8 +362,8 @@ jobs:
 		uses: abozanona/pacman-contribution-graph@main
 		with:
 			github_user_name: ${{ github.repository_owner }}
-						# Comma-separated list of games: pacman, breakout, galaga (default: pacman)
-						games: 'pacman,breakout,galaga'
+						# Comma-separated list of games: pacman, breakout, galaga, puzzle-bobble, bomberman (default: pacman)
+						games: 'pacman,breakout,galaga,puzzle-bobble,bomberman'
 		- name: push SVGs to the output branch
 		uses: crazy-max/ghaction-github-pages@v3.1.0
 		with:
@@ -384,6 +385,13 @@ jobs:
   &lt;source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph-dark.svg">
   &lt;source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
   &lt;img alt="breakout contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
+&lt;/picture>
+
+&lt;!-- Bomberman -->
+&lt;picture>
+  &lt;source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph-dark.svg">
+  &lt;source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
+  &lt;img alt="bomberman contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
 &lt;/picture>
 
 _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.io/pacman-contribution-graph/)_</code></pre></li>
@@ -423,12 +431,17 @@ generate_graphs:
 		# Breakout
 		- pacman-contribution-graph --game breakout --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab --output dist/breakout-contribution-graph.svg
 		- pacman-contribution-graph --game breakout --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab-dark --output dist/breakout-contribution-graph-dark.svg
+		# Bomberman
+		- pacman-contribution-graph --game bomberman --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab --output dist/bomberman-contribution-graph.svg
+		- pacman-contribution-graph --game bomberman --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab-dark --output dist/bomberman-contribution-graph-dark.svg
 	artifacts:
 		paths:
 			- dist/pacman-contribution-graph.svg
 			- dist/pacman-contribution-graph-dark.svg
 			- dist/breakout-contribution-graph.svg
 			- dist/breakout-contribution-graph-dark.svg
+			- dist/bomberman-contribution-graph.svg
+			- dist/bomberman-contribution-graph-dark.svg
 		expire_in: 1 hour
 	rules:
 		- if: '$CI_PIPELINE_SOURCE == "schedule"'
@@ -466,6 +479,13 @@ deploy_to_readme:
   &lt;img alt="breakout contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph.svg">
 &lt;/picture>
 
+&lt;!-- Bomberman -->
+&lt;picture>
+  &lt;source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph-dark.svg">
+  &lt;source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
+  &lt;img alt="bomberman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
+&lt;/picture>
+
 _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.io/pacman-contribution-graph/)_</code></pre></li>
 <li>
 	Schedule pipeline running
@@ -497,7 +517,10 @@ pacman-contribution-graph --game pacman --platform github --username your_userna
 pacman-contribution-graph --game breakout --platform github --username your_username --gameTheme github --output breakout-contribution-graph.svg
 
 # Galaga
-pacman-contribution-graph --game galaga --platform github --username your_username --gameTheme github --output galaga-contribution-graph.svg</code></pre>
+pacman-contribution-graph --game galaga --platform github --username your_username --gameTheme github --output galaga-contribution-graph.svg
+
+# Bomberman
+pacman-contribution-graph --game bomberman --platform github --username your_username --gameTheme github --output bomberman-contribution-graph.svg</code></pre>
 				</li>
 			</ol>
 
@@ -516,7 +539,7 @@ pacman-contribution-graph --game galaga --platform github --username your_userna
 
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 		<script type="module">
-			import { PacmanRenderer, BreakoutRenderer, GalagaRenderer, PuzzleBobbleRenderer } from './dist/pacman-contribution-graph.js';
+			import { PacmanRenderer, BreakoutRenderer, GalagaRenderer, PuzzleBobbleRenderer, BombermanRenderer } from './dist/pacman-contribution-graph.js';
 
 			const generateButton = document.getElementById('generate');
 			const usernameInput = document.getElementById('username');
@@ -651,7 +674,9 @@ pacman-contribution-graph --game galaga --platform github --username your_userna
 					}
 				};
 
-				if (selectedGame === 'breakout') {
+				if (selectedGame === 'bomberman') {
+					pr = new BombermanRenderer({ ...config, ...callbacks });
+				} else if (selectedGame === 'breakout') {
 					pr = new BreakoutRenderer({ ...config, ...callbacks });
 				} else if (selectedGame === 'galaga') {
 					pr = new GalagaRenderer({ ...config, ...callbacks });
