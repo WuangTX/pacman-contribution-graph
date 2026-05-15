@@ -121,13 +121,7 @@ const resolveSafetyWeight = (store: StoreType): number => {
 	return safetyWeight;
 };
 
-const stepCost = (
-	store: StoreType,
-	dangerMap: Map<string, number>,
-	safetyWeight: number,
-	x: number,
-	y: number
-): number => {
+const stepCost = (store: StoreType, dangerMap: Map<string, number>, safetyWeight: number, x: number, y: number): number => {
 	const key = `${x},${y}`;
 	const danger = dangerMap.get(key) ?? 0;
 	const revisit = store.pacman.recentPositions?.includes(key) ? REVISIT_PENALTY : 0;
@@ -162,9 +156,7 @@ const calculateOptimalPath = (store: StoreType, target: Point2d): Point2d | null
 	const startKey = `${start.x},${start.y}`;
 	const targetKey = `${target.x},${target.y}`;
 
-	const open: { x: number; y: number; g: number; f: number }[] = [
-		{ x: start.x, y: start.y, g: 0, f: heuristic(start, target) }
-	];
+	const open: { x: number; y: number; g: number; f: number }[] = [{ x: start.x, y: start.y, g: 0, f: heuristic(start, target) }];
 	const gScore = new Map<string, number>([[startKey, 0]]);
 	const cameFrom = new Map<string, string>();
 
