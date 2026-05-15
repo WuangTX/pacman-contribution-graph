@@ -84,8 +84,8 @@ const findOptimalTarget = (store: StoreType) => {
 };
 
 const REVISIT_PENALTY = 100;
-const HIGH_DANGER_THRESHOLD = 5;
-const CONSERVATIVE_HIGH_DANGER_PENALTY = 100;
+const GHOST_ADJACENT_DANGER = 14;
+const GHOST_ADJACENT_PENALTY = 1_000_000;
 
 const resolveSafetyWeight = (store: StoreType): number => {
 	let safetyWeight = 0.5;
@@ -131,12 +131,9 @@ const stepCost = (
 	const key = `${x},${y}`;
 	const danger = dangerMap.get(key) ?? 0;
 	const revisit = store.pacman.recentPositions?.includes(key) ? REVISIT_PENALTY : 0;
-	const conservativeSeverePenalty =
-		store.config.playerStyle === PlayerStyle.CONSERVATIVE && danger >= HIGH_DANGER_THRESHOLD
-			? CONSERVATIVE_HIGH_DANGER_PENALTY
-			: 0;
+	const ghostAdjacentPenalty = danger >= GHOST_ADJACENT_DANGER ? GHOST_ADJACENT_PENALTY : 0;
 
-	return 1 + danger * safetyWeight + revisit + conservativeSeverePenalty;
+	return 1 + danger * safetyWeight + revisit + ghostAdjacentPenalty;
 };
 
 const heuristic = (from: Point2d, target: Point2d): number => {
