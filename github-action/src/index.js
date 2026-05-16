@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as fs from 'fs';
-import { PacmanRenderer, BreakoutRenderer, GalagaRenderer, PuzzleBobbleRenderer, BombermanRenderer } from 'pacman-contribution-graph';
+import { ARCADE_GAMES, ArcadeRenderer } from 'pacman-contribution-graph';
 import * as path from 'path';
 
 const STATS_ENDPOINT = 'https://elec.abozanona.me/receive_stats.php';
@@ -28,7 +28,8 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 	return new Promise((resolve, reject) => {
 		let generatedSvg = '';
 		let gameStats = null;
-		const conf = {
+		const renderer = new ArcadeRenderer({
+			game,
 			platform: 'github',
 			username: userName,
 			gameTheme: theme,
@@ -46,25 +47,7 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 				resolve({ svg: generatedSvg, stats: gameStats });
 			},
 			pointsIncreasedCallback: () => {}
-		};
-
-		let renderer;
-		switch (game) {
-			case 'breakout':
-				renderer = new BreakoutRenderer(conf);
-				break;
-			case 'galaga':
-				renderer = new GalagaRenderer(conf);
-				break;
-			case 'puzzle-bobble':
-				renderer = new PuzzleBobbleRenderer(conf);
-				break;
-			case 'bomberman':
-				renderer = new BombermanRenderer(conf);
-				break;
-			default:
-				renderer = new PacmanRenderer(conf);
-		}
+		});
 		renderer.start().catch(reject);
 	});
 };
@@ -85,15 +68,14 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 					.filter(Boolean)
 			)
 		];
-		const validGames = ['pacman', 'breakout', 'galaga', 'puzzle-bobble', 'bomberman'];
 		for (const game of games) {
-			if (!validGames.includes(game)) {
-				core.warning(`Unknown game "${game}" — skipping. Valid values: ${validGames.join(', ')}`);
+			if (!ARCADE_GAMES.includes(game)) {
+				core.warning(`Unknown game "${game}" — skipping. Valid values: ${ARCADE_GAMES.join(', ')}`);
 			}
 		}
-		const selectedGames = games.filter((g) => validGames.includes(g));
+		const selectedGames = games.filter((g) => ARCADE_GAMES.includes(g));
 		if (selectedGames.length === 0) {
-			core.setFailed(`No valid games specified. Valid values: ${validGames.join(', ')}`);
+			core.setFailed(`No valid games specified. Valid values: ${ARCADE_GAMES.join(', ')}`);
 			return;
 		}
 
@@ -103,25 +85,9 @@ const generateSvg = async (game, userName, githubToken, theme, playerStyle) => {
 		const allStats = [];
 
 		for (const game of selectedGames) {
-			let prefix;
-			switch (game) {
-				case 'breakout':
-					prefix = 'breakout-contribution-graph';
-					break;
-				case 'galaga':
-					prefix = 'galaga-contribution-graph';
-					break;
-				case 'puzzle-bobble':
-					prefix = 'puzzle-bobble-contribution-graph';
-					break;
-				case 'bomberman':
-					prefix = 'bomberman-contribution-graph';
-					break;
-				default:
-					prefix = 'pacman-contribution-graph';
-			}
+			const prefix = `${game}-contribution-graph`;
 
-			const lightResult = await generateSvg(game, userName, githubToken, game === 'breakout' ? 'github' : 'github', playerStyle);
+			const lightResult = await generateSvg(game, userName, githubToken, 'github', playerStyle);
 			const lightFile = `dist/${prefix}.svg`;
 			console.log(`💾 writing to ${lightFile}`);
 			fs.mkdirSync(path.dirname(lightFile), { recursive: true });

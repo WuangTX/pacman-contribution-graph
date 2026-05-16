@@ -167,11 +167,6 @@
 						<div class="mb-3">
 							<label for="game" class="form-label">Game</label>
 							<select id="game" class="form-select">
-								<option value="pacman">👻 Pac-Man</option>
-								<option value="breakout">🧱 Breakout</option>
-								<option value="galaga">🚀 Galaga</option>
-								<option value="puzzle-bobble">🫧 Puzzle Bobble</option>
-								<option value="bomberman">💣 Bomberman</option>
 							</select>
 						</div>
 					</div>
@@ -276,6 +271,11 @@
 					</thead>
 					<tbody>
 						<tr>
+							<td><code>game</code></td>
+							<td>The arcade game to generate</td>
+							<td id="gameOptionsCell">loading...</td>
+						</tr>
+						<tr>
 							<td><code>platform</code></td>
 							<td>The platform from which to fetch contribution data</td>
 							<td><code>github</code>, <code>gitlab</code></td>
@@ -314,20 +314,11 @@
 				<h3>Method 1: NPM Package</h3>
 				<pre><code>npm install pacman-contribution-graph
 
-import { PacmanRenderer } from 'pacman-contribution-graph';
+import { ArcadeRenderer } from 'pacman-contribution-graph';
 
-const pr = new PacmanRenderer({
-    platform: 'github',
-    username: 'yourusername',
-    gameTheme: 'github'
-});
-pr.start();
-</code></pre>
-
-				<h3>Method 2: Script loading</h3>
-				<pre><code>&lt;script type="module"&gt;
-import { PacmanRenderer } from 'https://cdn.jsdelivr.net/npm/pacman-contribution-graph/dist/pacman-contribution-graph.min.js';
-const pr = new PacmanRenderer({
+// Replace [game-name] with a valid game name
+const pr = new ArcadeRenderer({
+    game: '[game-name]',
     platform: 'github',
     username: 'yourusername',
     gameTheme: 'github'
@@ -362,8 +353,8 @@ jobs:
 		uses: abozanona/pacman-contribution-graph@main
 		with:
 			github_user_name: ${{ github.repository_owner }}
-						# Comma-separated list of games: pacman, breakout, galaga, puzzle-bobble, bomberman (default: pacman)
-						games: 'pacman,breakout,galaga,puzzle-bobble,bomberman'
+			# Comma-separated list of valid game names (default: pacman)
+			games: 'pacman,bomberman'
 		- name: push SVGs to the output branch
 		uses: crazy-max/ghaction-github-pages@v3.1.0
 		with:
@@ -372,26 +363,11 @@ jobs:
 		env:
 			GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}</code></pre>
 				</li>
-				<li>Create <code>README.md</code> file in your github repo with the following content. Change <code>[USERNAME]</code> with your github username
-				<pre><code>&lt;!-- Pac-Man -->
-&lt;picture>
-  &lt;source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph-dark.svg">
-  &lt;source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph.svg">
-  &lt;img alt="pacman contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph.svg">
-&lt;/picture>
-
-&lt;!-- Breakout -->
-&lt;picture>
-  &lt;source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph-dark.svg">
-  &lt;source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
-  &lt;img alt="breakout contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
-&lt;/picture>
-
-&lt;!-- Bomberman -->
-&lt;picture>
-  &lt;source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph-dark.svg">
-  &lt;source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
-  &lt;img alt="bomberman contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
+				<li>Create <code>README.md</code> file in your github repo with the following content. Change <code>[USERNAME]</code> with your github username and <code>[game-name]</code> with a valid game name. Repeat the block for each game you enabled.
+				<pre><code>&lt;picture>
+  &lt;source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph-dark.svg">
+  &lt;source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph.svg">
+  &lt;img alt="[game-name] contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph.svg">
 &lt;/picture>
 
 _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.io/pacman-contribution-graph/)_</code></pre></li>
@@ -411,7 +387,8 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 					</ol>
 				</li>
 				<li>
-					In the repository, create a <code>.gitlab-ci.yml</code> file with the following content
+					In the repository, create a <code>.gitlab-ci.yml</code> file with the following content.
+					Replace <code>[game-name]</code> with your chosen game. Add one block per game.
 					<pre><code>stages:
 	- generate
 	- deploy
@@ -425,23 +402,12 @@ generate_graphs:
 	script:
 		- mkdir -p dist
 		- npm install -g pacman-contribution-graph
-		# Pac-Man
-		- pacman-contribution-graph --game pacman --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab --output dist/pacman-contribution-graph.svg
-		- pacman-contribution-graph --game pacman --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab-dark --output dist/pacman-contribution-graph-dark.svg
-		# Breakout
-		- pacman-contribution-graph --game breakout --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab --output dist/breakout-contribution-graph.svg
-		- pacman-contribution-graph --game breakout --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab-dark --output dist/breakout-contribution-graph-dark.svg
-		# Bomberman
-		- pacman-contribution-graph --game bomberman --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab --output dist/bomberman-contribution-graph.svg
-		- pacman-contribution-graph --game bomberman --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab-dark --output dist/bomberman-contribution-graph-dark.svg
+		# Replace [game-name] with the game you want; repeat for each game
+		- pacman-contribution-graph --game [game-name] --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab --output dist/[game-name]-contribution-graph.svg
+		- pacman-contribution-graph --game [game-name] --platform gitlab --username "$CI_PROJECT_NAMESPACE" --gameTheme gitlab-dark --output dist/[game-name]-contribution-graph-dark.svg
 	artifacts:
 		paths:
-			- dist/pacman-contribution-graph.svg
-			- dist/pacman-contribution-graph-dark.svg
-			- dist/breakout-contribution-graph.svg
-			- dist/breakout-contribution-graph-dark.svg
-			- dist/bomberman-contribution-graph.svg
-			- dist/bomberman-contribution-graph-dark.svg
+			- dist/*.svg
 		expire_in: 1 hour
 	rules:
 		- if: '$CI_PIPELINE_SOURCE == "schedule"'
@@ -464,26 +430,11 @@ deploy_to_readme:
 		- if: '$CI_PIPELINE_SOURCE == "schedule"'
 		- if: '$CI_PIPELINE_SOURCE == "push"'</code></pre>
 				</li>
-				<li>Create <code>README.md</code> file in your gitlab repo with the following content. Change <code>[USERNAME]</code> with your gitlab username
-				<pre><code>&lt;!-- Pac-Man -->
-&lt;picture>
-  &lt;source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph-dark.svg">
-  &lt;source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph.svg">
-  &lt;img alt="pacman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph.svg">
-&lt;/picture>
-
-&lt;!-- Breakout -->
-&lt;picture>
-  &lt;source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph-dark.svg">
-  &lt;source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph.svg">
-  &lt;img alt="breakout contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph.svg">
-&lt;/picture>
-
-&lt;!-- Bomberman -->
-&lt;picture>
-  &lt;source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph-dark.svg">
-  &lt;source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
-  &lt;img alt="bomberman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
+				<li>Create <code>README.md</code> file in your gitlab repo with the following content. Change <code>[USERNAME]</code> with your gitlab username and <code>[game-name]</code> with the game. Repeat the block for each game you enabled.
+				<pre><code>&lt;picture>
+  &lt;source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/[game-name]-contribution-graph-dark.svg">
+  &lt;source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/[game-name]-contribution-graph.svg">
+  &lt;img alt="[game-name] contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/[game-name]-contribution-graph.svg">
 &lt;/picture>
 
 _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.io/pacman-contribution-graph/)_</code></pre></li>
@@ -509,18 +460,8 @@ _generated with [abozanona/pacman-contribution-graph](https://abozanona.github.i
 			<h3>Method 5: Using cli</h3>
 			<ol>
 				<li>Run <code>npm install -g pacman-contribution-graph</code></li>
-				<li>Run the CLI with your preferred game:
-				<pre><code># Pac-Man (default)
-pacman-contribution-graph --game pacman --platform github --username your_username --gameTheme github --output pacman-contribution-graph.svg
-
-# Breakout
-pacman-contribution-graph --game breakout --platform github --username your_username --gameTheme github --output breakout-contribution-graph.svg
-
-# Galaga
-pacman-contribution-graph --game galaga --platform github --username your_username --gameTheme github --output galaga-contribution-graph.svg
-
-# Bomberman
-pacman-contribution-graph --game bomberman --platform github --username your_username --gameTheme github --output bomberman-contribution-graph.svg</code></pre>
+				<li>Run the CLI, replacing <code>[game-name]</code> with your chosen game:
+				<pre><code>pacman-contribution-graph --game [game-name] --platform github --username your_username --gameTheme github --output [game-name]-contribution-graph.svg</code></pre>
 				</li>
 			</ol>
 
@@ -539,7 +480,7 @@ pacman-contribution-graph --game bomberman --platform github --username your_use
 
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 		<script type="module">
-			import { PacmanRenderer, BreakoutRenderer, GalagaRenderer, PuzzleBobbleRenderer, BombermanRenderer } from './dist/pacman-contribution-graph.js';
+			import { ArcadeRenderer, GAME_REGISTRY } from './dist/pacman-contribution-graph.js';
 
 			const generateButton = document.getElementById('generate');
 			const usernameInput = document.getElementById('username');
@@ -557,13 +498,25 @@ pacman-contribution-graph --game bomberman --platform github --username your_use
 			const githubAccessToken = document.getElementById('githubAccessToken');
 			const statGhosts = document.getElementById('statGhosts');
 
+			// Populate game selector and config-table cell dynamically from the registry
+			const gameOptionsCell = document.getElementById('gameOptionsCell');
+			gameOptionsCell.textContent = '';
+			for (const [id, entry] of Object.entries(GAME_REGISTRY)) {
+				const option = document.createElement('option');
+				option.value = id;
+				option.textContent = entry.label;
+				gameSelect.appendChild(option);
+
+				const chip = document.createElement('code');
+				chip.textContent = id;
+				if (gameOptionsCell.childNodes.length) gameOptionsCell.appendChild(document.createTextNode(', '));
+				gameOptionsCell.appendChild(chip);
+			}
+
 			generateButton.disabled = true;
 
-			// Show/hide game-specific UI when the game selector changes
 			gameSelect.addEventListener('change', () => {
-				const isPacman = gameSelect.value === 'pacman';
-				playerStyleRow.style.display = isPacman ? '' : 'none';
-				statGhosts.style.display = isPacman ? '' : 'none';
+				statGhosts.style.display = gameSelect.value === 'pacman' ? '' : 'none';
 			});
 
 			let currentSvgBlob = null;
@@ -674,17 +627,12 @@ pacman-contribution-graph --game bomberman --platform github --username your_use
 					}
 				};
 
-				if (selectedGame === 'bomberman') {
-					pr = new BombermanRenderer({ ...config, ...callbacks });
-				} else if (selectedGame === 'breakout') {
-					pr = new BreakoutRenderer({ ...config, ...callbacks });
-				} else if (selectedGame === 'galaga') {
-					pr = new GalagaRenderer({ ...config, ...callbacks });
-				} else if (selectedGame === 'puzzle-bobble') {
-					pr = new PuzzleBobbleRenderer({ ...config, ...callbacks });
-				} else {
-					pr = new PacmanRenderer({ ...config, ...callbacks, playerStyle: playerStyleSelect.value });
-				}
+				pr = new ArcadeRenderer({
+					game: selectedGame,
+					...config,
+					...callbacks,
+					playerStyle: playerStyleSelect.value
+				});
 				pr.start();
 			});
 

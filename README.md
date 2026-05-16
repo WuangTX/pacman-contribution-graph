@@ -98,16 +98,16 @@ Here's how to set up and run the games:
 1. **Include the Library**: Ensure the library is included in your project, either via npm or a script tag.
 2. **Initialize the Game**: Use the following code to generate an arcade game:
 
-    **Pac-Man:**
-
     ```javascript
-    import { PacmanRenderer, PlayerStyle } from 'pacman-contribution-graph';
+    import { ArcadeRenderer } from 'pacman-contribution-graph';
 
-    const renderer = new PacmanRenderer({
+    // Replace [game-name] with a valid game name
+    const renderer = new ArcadeRenderer({
+    	game: '[game-name]',
     	username: 'your_username',
     	platform: 'github', // or 'gitlab'
     	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
-    	playerStyle: PlayerStyle.OPPORTUNISTIC, // CONSERVATIVE, AGGRESSIVE, or OPPORTUNISTIC
+    	playerStyle: 'opportunistic', // Pac-Man only: 'conservative', 'aggressive', or 'opportunistic'
     	svgCallback: (svg) => {
     		// called with the generated SVG string
     		document.getElementById('output').innerHTML = svg;
@@ -122,95 +122,8 @@ Here's how to set up and run the games:
     renderer.start();
     ```
 
-    **Breakout:**
-
-    ```javascript
-    import { BreakoutRenderer } from 'pacman-contribution-graph';
-
-    const renderer = new BreakoutRenderer({
-    	username: 'your_username',
-    	platform: 'github', // or 'gitlab'
-    	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
-    	svgCallback: (svg) => {
-    		document.getElementById('output').innerHTML = svg;
-    	},
-    	gameOverCallback: () => {
-    		console.log('Game over!');
-    	},
-    	pointsIncreasedCallback: (points) => {
-    		console.log('Score:', points);
-    	}
-    });
-    renderer.start();
-    ```
-
-    **Galaga:**
-
-    ```javascript
-    import { GalagaRenderer } from 'pacman-contribution-graph';
-
-    const renderer = new GalagaRenderer({
-    	username: 'your_username',
-    	platform: 'github', // or 'gitlab'
-    	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
-    	svgCallback: (svg) => {
-    		document.getElementById('output').innerHTML = svg;
-    	},
-    	gameOverCallback: () => {
-    		console.log('Game over!');
-    	},
-    	pointsIncreasedCallback: (points) => {
-    		console.log('Score:', points);
-    	}
-    });
-    renderer.start();
-    ```
-
-    **Puzzle Bobble:**
-
-    ```javascript
-    import { PuzzleBobbleRenderer } from 'pacman-contribution-graph';
-
-    const renderer = new PuzzleBobbleRenderer({
-    	username: 'your_username',
-    	platform: 'github', // or 'gitlab'
-    	gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
-    	svgCallback: (svg) => {
-    		document.getElementById('output').innerHTML = svg;
-    	},
-    	gameOverCallback: () => {
-    		console.log('Game over!');
-    	},
-    	pointsIncreasedCallback: (points) => {
-    		console.log('Score:', points);
-    	}
-    });
-    renderer.start();
-    ```
-
-    **Bomberman:**
-
-    ```javascript
-    import { BombermanRenderer } from 'pacman-contribution-graph';
-
-    const renderer = new BombermanRenderer({
-        username: 'your_username',
-        platform: 'github', // or 'gitlab'
-        gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
-        svgCallback: (svg) => {
-            document.getElementById('output').innerHTML = svg;
-        },
-        gameOverCallback: () => {
-            console.log('Game over!');
-        },
-        pointsIncreasedCallback: (points) => {
-            console.log('Score:', points);
-        }
-    });
-    renderer.start();
-    ```
-
 3. **Customize Settings**: Adjust the parameters as needed:
+    - `game`: The arcade game to generate — `'pacman'`, `'breakout'`, `'galaga'`, `'puzzle-bobble'`, or `'bomberman'`.
     - `username`: Your GitHub or GitLab username.
     - `platform`: Specify `'github'` or `'gitlab'`.
     - `gameTheme`: Choose between `'github'`, `'github-dark'`, `'gitlab'`, or `'gitlab-dark'`.
@@ -275,44 +188,16 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
 
 3. **Add to Profile README**:
 
-    - In your repository, create or edit the `README.md` file to include:
+    - In your repository, create or edit the `README.md` file to include. Replace `[USERNAME]` with your GitHub username and `[game-name]` with the game (e.g. `pacman`, `breakout`, …). Repeat the block for each game you enabled.
 
         ```markdown
         ## My Contribution Graph
 
-        <!-- Pac-Man -->
+        <!-- [game-name] -->
         <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph.svg">
-            <img alt="pacman contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/pacman-contribution-graph.svg">
-        </picture>
-
-        <!-- Breakout -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
-            <img alt="breakout contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/breakout-contribution-graph.svg">
-        </picture>
-
-        <!-- Galaga -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/galaga-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/galaga-contribution-graph.svg">
-            <img alt="galaga contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/galaga-contribution-graph.svg">
-        </picture>
-
-        <!-- Puzzle Bobble -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph.svg">
-            <img alt="puzzle bobble contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph.svg">
-        </picture>
-
-        <!-- Bomberman -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
-            <img alt="bomberman contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
+            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph.svg">
+            <img alt="[game-name] contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/[game-name]-contribution-graph.svg">
         </picture>
         ```
 
@@ -340,6 +225,7 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
 3. **Set Up `gitlab-ci` File**:
 
     - In the repository, create a `.gitlab-ci.yml` file with the following content.
+      Replace `[game-name]` with your chosen game. Add one block per game.
 
         ```yaml
         stages:
@@ -355,33 +241,12 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
             script:
                 - mkdir -p dist
                 - npm install -g pacman-contribution-graph
-                # Pac-Man
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game pacman --gameTheme gitlab --output dist/pacman-contribution-graph.svg
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game pacman --gameTheme gitlab-dark --output dist/pacman-contribution-graph-dark.svg
-                # Breakout
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game breakout --gameTheme gitlab --output dist/breakout-contribution-graph.svg
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game breakout --gameTheme gitlab-dark --output dist/breakout-contribution-graph-dark.svg
-                # Galaga
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game galaga --gameTheme gitlab --output dist/galaga-contribution-graph.svg
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game galaga --gameTheme gitlab-dark --output dist/galaga-contribution-graph-dark.svg
-                # Puzzle Bobble
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game puzzle-bobble --gameTheme gitlab --output dist/puzzle-bobble-contribution-graph.svg
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game puzzle-bobble --gameTheme gitlab-dark --output dist/puzzle-bobble-contribution-graph-dark.svg
-                # Bomberman
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game bomberman --gameTheme gitlab --output dist/bomberman-contribution-graph.svg
-                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game bomberman --gameTheme gitlab-dark --output dist/bomberman-contribution-graph-dark.svg
+                # Replace [game-name] with the game you want; repeat for each game
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game [game-name] --gameTheme gitlab --output dist/[game-name]-contribution-graph.svg
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game [game-name] --gameTheme gitlab-dark --output dist/[game-name]-contribution-graph-dark.svg
             artifacts:
                 paths:
-                    - dist/pacman-contribution-graph.svg
-                    - dist/pacman-contribution-graph-dark.svg
-                    - dist/breakout-contribution-graph.svg
-                    - dist/breakout-contribution-graph-dark.svg
-                    - dist/galaga-contribution-graph.svg
-                    - dist/galaga-contribution-graph-dark.svg
-                    - dist/puzzle-bobble-contribution-graph.svg
-                    - dist/puzzle-bobble-contribution-graph-dark.svg
-                    - dist/bomberman-contribution-graph.svg
-                    - dist/bomberman-contribution-graph-dark.svg
+                    - dist/*.svg
                 expire_in: 1 hour
             rules:
                 - if: '$CI_PIPELINE_SOURCE == "schedule"'
@@ -407,44 +272,16 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
 
 4. **Add to Profile README**:
 
-    - In your repository, create or edit the `README.md` file to include:
+    - In your repository, create or edit the `README.md` file to include. Replace `[USERNAME]` with your GitLab username and `[game-name]` with the game. Repeat the block for each game you enabled.
 
         ```markdown
         ## My Contribution Graph
 
-        <!-- Pac-Man -->
+        <!-- [game-name] -->
         <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph.svg">
-            <img alt="pacman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/pacman-contribution-graph.svg">
-        </picture>
-
-        <!-- Breakout -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph.svg">
-            <img alt="breakout contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/breakout-contribution-graph.svg">
-        </picture>
-
-        <!-- Galaga -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/galaga-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/galaga-contribution-graph.svg">
-            <img alt="galaga contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/galaga-contribution-graph.svg">
-        </picture>
-
-        <!-- Puzzle Bobble -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph.svg">
-            <img alt="puzzle bobble contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph.svg">
-        </picture>
-
-        <!-- Bomberman -->
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph-dark.svg">
-            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
-            <img alt="bomberman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
+            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/[game-name]-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/[game-name]-contribution-graph.svg">
+            <img alt="[game-name] contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/[game-name]-contribution-graph.svg">
         </picture>
         ```
 

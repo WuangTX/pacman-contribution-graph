@@ -4,6 +4,8 @@ import { Game } from './core/game';
 import { Store } from './core/store';
 import { BombermanConfig, BombermanStore } from './types';
 
+export { BombermanConfig } from './types';
+
 export class BombermanRenderer {
 	store!: BombermanStore;
 	conf: BombermanConfig;

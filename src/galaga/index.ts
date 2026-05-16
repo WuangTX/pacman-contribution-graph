@@ -4,6 +4,8 @@ import { GalagaGame } from './core/game';
 import { GalagaStore } from './core/store';
 import { GalagaConfig, GalagaStoreType } from './types';
 
+export { GalagaConfig } from './types';
+
 export class GalagaRenderer {
 	store!: GalagaStoreType;
 	conf: GalagaConfig;

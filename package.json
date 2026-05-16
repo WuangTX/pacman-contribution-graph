@@ -1,6 +1,6 @@
 {
 	"name": "pacman-contribution-graph",
-	"version": "3.2.8",
+	"version": "4.0.0",
 	"description": "Generates a pacman game from a github or gitlab user contributions grid",
 	"repository": "github:abozanona/pacman-contribution-graph",
 	"homepage": "https://abozanona.github.io/pacman-contribution-graph/",
@@ -17,7 +17,12 @@
 	],
 	"keywords": [
 		"github",
-		"pacman",
+		"arcade",
+		"pac-man",
+		"breakout",
+		"galaga",
+		"puzzle-bobble",
+		"bomberman",
 		"svg",
 		"contribution-graph",
 		"animation",

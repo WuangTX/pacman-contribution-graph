@@ -1,10 +1,10 @@
 /******/ var __webpack_modules__ = ({
 
-/***/ "./src/bomberman/core/ai.ts"
+/***/ "./src/bomberman/core/ai.ts":
 /*!**********************************!*\
   !*** ./src/bomberman/core/ai.ts ***!
   \**********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -112,13 +112,13 @@ const movePlayerTo = (player, next) => {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/core/constants.ts"
+/***/ "./src/bomberman/core/constants.ts":
 /*!*****************************************!*\
   !*** ./src/bomberman/core/constants.ts ***!
   \*****************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -559,13 +559,13 @@ const BOMBERMAN_SPRITE_SETS = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/core/game.ts"
+/***/ "./src/bomberman/core/game.ts":
 /*!************************************!*\
   !*** ./src/bomberman/core/game.ts ***!
   \************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -672,13 +672,13 @@ const Game = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/core/pathfinding.ts"
+/***/ "./src/bomberman/core/pathfinding.ts":
 /*!*******************************************!*\
   !*** ./src/bomberman/core/pathfinding.ts ***!
   \*******************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -883,13 +883,13 @@ const canEscapeAfterPlantingBomb = (store, player) => {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/core/rules.ts"
+/***/ "./src/bomberman/core/rules.ts":
 /*!*************************************!*\
   !*** ./src/bomberman/core/rules.ts ***!
   \*************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1081,13 +1081,13 @@ const updateExplosions = (store) => {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/core/store.ts"
+/***/ "./src/bomberman/core/store.ts":
 /*!*************************************!*\
   !*** ./src/bomberman/core/store.ts ***!
   \*************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1111,13 +1111,13 @@ const Store = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/index.ts"
+/***/ "./src/bomberman/index.ts":
 /*!********************************!*\
   !*** ./src/bomberman/index.ts ***!
   \********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1179,13 +1179,13 @@ class BombermanRenderer {
 }
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/renderers/animation.ts"
+/***/ "./src/bomberman/renderers/animation.ts":
 /*!**********************************************!*\
   !*** ./src/bomberman/renderers/animation.ts ***!
   \**********************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1263,13 +1263,13 @@ const appendFinalKeyframe = (keyTimes, values) => {
 const frameToKeyTime = (frameIndex, totalFrames) => Number((Math.min(frameIndex, Math.max(totalFrames - 1, 1)) / Math.max(totalFrames - 1, 1)).toFixed(_core_constants__WEBPACK_IMPORTED_MODULE_0__.BOMBERMAN_SVG.PRECISION));
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/bomberman/renderers/svg.ts"
+/***/ "./src/bomberman/renderers/svg.ts":
 /*!****************************************!*\
   !*** ./src/bomberman/renderers/svg.ts ***!
   \****************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1627,13 +1627,13 @@ const Renderer = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/breakout/core/constants.ts"
+/***/ "./src/breakout/core/constants.ts":
 /*!****************************************!*\
   !*** ./src/breakout/core/constants.ts ***!
   \****************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1691,13 +1691,13 @@ const PADDLE_COLOR = '#ffffff';
 const BALL_SHADOW_COLOR = '#aaaaaa';
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/breakout/core/game.ts"
+/***/ "./src/breakout/core/game.ts":
 /*!***********************************!*\
   !*** ./src/breakout/core/game.ts ***!
   \***********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1976,13 +1976,13 @@ const BreakoutGame = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/breakout/core/store.ts"
+/***/ "./src/breakout/core/store.ts":
 /*!************************************!*\
   !*** ./src/breakout/core/store.ts ***!
   \************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2005,13 +2005,13 @@ const BreakoutStore = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/breakout/index.ts"
+/***/ "./src/breakout/index.ts":
 /*!*******************************!*\
   !*** ./src/breakout/index.ts ***!
   \*******************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2073,13 +2073,13 @@ class BreakoutRenderer {
 }
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/breakout/renderers/svg.ts"
+/***/ "./src/breakout/renderers/svg.ts":
 /*!***************************************!*\
   !*** ./src/breakout/renderers/svg.ts ***!
   \***************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2240,13 +2240,13 @@ const buildChangingValuesAnimation = (store, values) => {
 const BreakoutSVG = { generateAnimatedSVG };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/galaga/core/constants.ts"
+/***/ "./src/galaga/core/constants.ts":
 /*!**************************************!*\
   !*** ./src/galaga/core/constants.ts ***!
   \**************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2300,13 +2300,13 @@ const BULLET_IMAGE_DATA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAC
 const SHIP_IMAGE_DATA = 'data:image/png;base64,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';
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/galaga/core/game.ts"
+/***/ "./src/galaga/core/game.ts":
 /*!*********************************!*\
   !*** ./src/galaga/core/game.ts ***!
   \*********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2506,13 +2506,13 @@ const updateGame = (store) => {
 const GalagaGame = { startGame, stopGame };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/galaga/core/store.ts"
+/***/ "./src/galaga/core/store.ts":
 /*!**********************************!*\
   !*** ./src/galaga/core/store.ts ***!
   \**********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2537,13 +2537,13 @@ const GalagaStore = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/galaga/index.ts"
+/***/ "./src/galaga/index.ts":
 /*!*****************************!*\
   !*** ./src/galaga/index.ts ***!
   \*****************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2605,13 +2605,13 @@ class GalagaRenderer {
 }
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/galaga/renderers/svg.ts"
+/***/ "./src/galaga/renderers/svg.ts":
 /*!*************************************!*\
   !*** ./src/galaga/renderers/svg.ts ***!
   \*************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -2900,13 +2900,13 @@ const buildChangingValuesAnimation = (store, values) => {
 const GalagaSVG = { generateAnimatedSVG };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/core/constants.ts"
+/***/ "./src/pacman/core/constants.ts":
 /*!**************************************!*\
   !*** ./src/pacman/core/constants.ts ***!
   \**************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3010,13 +3010,13 @@ const hasWall = (x, y, direction) => {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/core/game.ts"
+/***/ "./src/pacman/core/game.ts":
 /*!*********************************!*\
   !*** ./src/pacman/core/game.ts ***!
   \*********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3278,13 +3278,13 @@ const Game = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/core/store.ts"
+/***/ "./src/pacman/core/store.ts":
 /*!**********************************!*\
   !*** ./src/pacman/core/store.ts ***!
   \**********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3316,13 +3316,13 @@ const Store = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/index.ts"
+/***/ "./src/pacman/index.ts":
 /*!*****************************!*\
   !*** ./src/pacman/index.ts ***!
   \*****************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3392,13 +3392,13 @@ class PacmanRenderer {
 }
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/movement/ghosts-movement.ts"
+/***/ "./src/pacman/movement/ghosts-movement.ts":
 /*!************************************************!*\
   !*** ./src/pacman/movement/ghosts-movement.ts ***!
   \************************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -3964,13 +3964,13 @@ const GhostsMovement = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/movement/movement-utils.ts"
+/***/ "./src/pacman/movement/movement-utils.ts":
 /*!***********************************************!*\
   !*** ./src/pacman/movement/movement-utils.ts ***!
   \***********************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4037,13 +4037,13 @@ const MovementUtils = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/movement/pacman-movement.ts"
+/***/ "./src/pacman/movement/pacman-movement.ts":
 /*!************************************************!*\
   !*** ./src/pacman/movement/pacman-movement.ts ***!
   \************************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4125,33 +4125,23 @@ const findOptimalTarget = (store) => {
     }
     return pointCells[0];
 };
-const calculateOptimalPath = (store, target) => {
-    var _a;
-    const queue = [
-        { x: store.pacman.x, y: store.pacman.y, path: [], score: 0 }
-    ];
-    const visited = new Set([`${store.pacman.x},${store.pacman.y}`]);
-    const dangerMap = createDangerMap(store);
-    const maxDangerValue = 15;
-    // Set weights according to player style - more extreme values
-    let safetyWeight = 0.5; // standard weight for safety
-    let pointWeight = 0.5; // standard weight for points
+const REVISIT_PENALTY = 100;
+const GHOST_ADJACENT_DANGER = 14;
+const GHOST_ADJACENT_PENALTY = 1000000;
+const resolveSafetyWeight = (store) => {
+    let safetyWeight = 0.5;
     switch (store.config.playerStyle) {
         case _types__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle.CONSERVATIVE:
-            safetyWeight = 3.0; // Much higher values ​​to ensure conservative behavior
-            pointWeight = 0.1;
+            safetyWeight = 3.0;
             break;
         case _types__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle.AGGRESSIVE:
             safetyWeight = 0.3;
-            pointWeight = 2.0;
             break;
         case _types__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle.OPPORTUNISTIC:
         default:
             safetyWeight = 0.8;
-            pointWeight = 0.8;
             break;
     }
-    // Calculate the distance to the nearest ghost
     let closestGhostDistance = Infinity;
     store.ghosts.forEach((ghost) => {
         if (!ghost.scared) {
@@ -4159,75 +4149,75 @@ const calculateOptimalPath = (store, target) => {
             closestGhostDistance = Math.min(closestGhostDistance, dist);
         }
     });
-    // Narrower danger threshold for conservative
-    const dangerThreshold = store.config.playerStyle === _types__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle.CONSERVATIVE ? 5 : 7;
-    const dangerNearby = closestGhostDistance < dangerThreshold;
-    // Adjust weights further if there is danger and it is conservative
+    const proximityThreshold = store.config.playerStyle === _types__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle.CONSERVATIVE ? 5 : 7;
+    const dangerNearby = closestGhostDistance < proximityThreshold;
     if (store.config.playerStyle === _types__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle.CONSERVATIVE && dangerNearby) {
-        safetyWeight *= 5; // Dramatically increase the safety weight in dangerous situations
+        safetyWeight *= 5;
     }
-    while (queue.length > 0) {
-        queue.sort((a, b) => b.score - a.score);
-        const current = queue.shift();
-        const { x, y, path } = current;
-        if (x === target.x && y === target.y) {
-            // Upon arrival at the destination, analyze the behavior
-            if (path.length > 0) {
-                let totalSafetyScore = 0;
-                let totalPointScore = 0;
-                path.forEach((point) => {
-                    const key = `${point.x},${point.y}`;
-                    const danger = dangerMap.get(key) || 0;
-                    const points = store.grid[point.x][point.y].commitsCount;
-                    totalSafetyScore -= danger * safetyWeight;
-                    totalPointScore += points * pointWeight;
-                });
-                return path[0];
-            }
-            return null;
+    return safetyWeight;
+};
+const stepCost = (store, dangerMap, safetyWeight, x, y) => {
+    var _a, _b;
+    const key = `${x},${y}`;
+    const danger = (_a = dangerMap.get(key)) !== null && _a !== void 0 ? _a : 0;
+    const revisit = ((_b = store.pacman.recentPositions) === null || _b === void 0 ? void 0 : _b.includes(key)) ? REVISIT_PENALTY : 0;
+    const ghostAdjacentPenalty = danger >= GHOST_ADJACENT_DANGER ? GHOST_ADJACENT_PENALTY : 0;
+    return 1 + danger * safetyWeight + revisit + ghostAdjacentPenalty;
+};
+const heuristic = (from, target) => {
+    return Math.abs(from.x - target.x) + Math.abs(from.y - target.y);
+};
+const reconstructFirstStep = (cameFrom, targetKey, startKey) => {
+    let cursor = targetKey;
+    let parent = cameFrom.get(cursor);
+    while (parent !== undefined && parent !== startKey) {
+        cursor = parent;
+        parent = cameFrom.get(cursor);
+    }
+    if (parent === undefined)
+        return null;
+    const [x, y] = cursor.split(',').map(Number);
+    return { x, y };
+};
+const calculateOptimalPath = (store, target) => {
+    var _a, _b;
+    const start = { x: store.pacman.x, y: store.pacman.y };
+    if (start.x === target.x && start.y === target.y)
+        return null;
+    const dangerMap = createDangerMap(store);
+    const safetyWeight = resolveSafetyWeight(store);
+    const startKey = `${start.x},${start.y}`;
+    const targetKey = `${target.x},${target.y}`;
+    const open = [{ x: start.x, y: start.y, g: 0, f: heuristic(start, target) }];
+    const gScore = new Map([[startKey, 0]]);
+    const cameFrom = new Map();
+    while (open.length > 0) {
+        let bestIdx = 0;
+        for (let i = 1; i < open.length; i++) {
+            if (open[i].f < open[bestIdx].f)
+                bestIdx = i;
         }
-        for (const [dx, dy] of _movement_utils__WEBPACK_IMPORTED_MODULE_3__.MovementUtils.getValidMoves(x, y)) {
-            const newX = x + dx;
-            const newY = y + dy;
-            const key = `${newX},${newY}`;
-            if (!visited.has(key)) {
-                const newPath = [...path, { x: newX, y: newY }];
-                const danger = dangerMap.get(key) || 0;
-                const pointValue = store.grid[newX][newY].commitsCount;
-                const distanceToTarget = _movement_utils__WEBPACK_IMPORTED_MODULE_3__.MovementUtils.calculateDistance(newX, newY, target.x, target.y);
-                const revisitPenalty = ((_a = store.pacman.recentPositions) === null || _a === void 0 ? void 0 : _a.includes(key)) ? 100 : 0;
-                let safetyScore, pointScore, finalScore;
-                // Completely inverted punctuation logic for conservative style
-                if (store.config.playerStyle === _types__WEBPACK_IMPORTED_MODULE_1__.PlayerStyle.CONSERVATIVE) {
-                    // For conservative: danger is MUCH more important than points
-                    safetyScore = (maxDangerValue - danger) * safetyWeight;
-                    // Severe penalties for dangerous cells
-                    if (danger >= 5) {
-                        safetyScore -= 100; // Severe penalty for dangerous cells
-                    }
-                    else {
-                        // Bonus for safe cells
-                        safetyScore += 50;
-                    }
-                    pointScore = pointValue * pointWeight;
-                    const distanceScore = -distanceToTarget / 10;
-                    // Score components are different for conservative
-                    finalScore = safetyScore * 5 + pointScore + distanceScore - revisitPenalty;
-                }
-                else {
-                    // Default logic for other styles
-                    safetyScore = (maxDangerValue - danger) * safetyWeight;
-                    pointScore = pointValue * pointWeight;
-                    const distanceScore = -distanceToTarget / 10;
-                    finalScore = safetyScore + pointScore + distanceScore - revisitPenalty;
-                }
-                queue.push({
-                    x: newX,
-                    y: newY,
-                    path: newPath,
-                    score: finalScore
+        const current = open.splice(bestIdx, 1)[0];
+        const currentKey = `${current.x},${current.y}`;
+        if (current.g > ((_a = gScore.get(currentKey)) !== null && _a !== void 0 ? _a : Infinity))
+            continue;
+        if (currentKey === targetKey) {
+            return reconstructFirstStep(cameFrom, targetKey, startKey);
+        }
+        for (const [dx, dy] of _movement_utils__WEBPACK_IMPORTED_MODULE_3__.MovementUtils.getValidMoves(current.x, current.y)) {
+            const nx = current.x + dx;
+            const ny = current.y + dy;
+            const neighborKey = `${nx},${ny}`;
+            const tentativeG = current.g + stepCost(store, dangerMap, safetyWeight, nx, ny);
+            if (tentativeG < ((_b = gScore.get(neighborKey)) !== null && _b !== void 0 ? _b : Infinity)) {
+                gScore.set(neighborKey, tentativeG);
+                cameFrom.set(neighborKey, currentKey);
+                open.push({
+                    x: nx,
+                    y: ny,
+                    g: tentativeG,
+                    f: tentativeG + heuristic({ x: nx, y: ny }, target)
                 });
-                visited.add(key);
             }
         }
     }
@@ -4325,13 +4315,13 @@ const PacmanMovement = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/renderers/renderer-units.ts"
+/***/ "./src/pacman/renderers/renderer-units.ts":
 /*!************************************************!*\
   !*** ./src/pacman/renderers/renderer-units.ts ***!
   \************************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4355,13 +4345,13 @@ const RendererUnits = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/renderers/svg.ts"
+/***/ "./src/pacman/renderers/svg.ts":
 /*!*************************************!*\
   !*** ./src/pacman/renderers/svg.ts ***!
   \*************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4741,13 +4731,13 @@ const SVG = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/types.ts"
+/***/ "./src/pacman/types.ts":
 /*!*****************************!*\
   !*** ./src/pacman/types.ts ***!
   \*****************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4761,13 +4751,13 @@ var PlayerStyle;
 })(PlayerStyle || (PlayerStyle = {}));
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/pacman/utils/grid.ts"
+/***/ "./src/pacman/utils/grid.ts":
 /*!**********************************!*\
   !*** ./src/pacman/utils/grid.ts ***!
   \**********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4893,13 +4883,13 @@ const Grid = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/puzzle-bobble/core/constants.ts"
+/***/ "./src/puzzle-bobble/core/constants.ts":
 /*!*********************************************!*\
   !*** ./src/puzzle-bobble/core/constants.ts ***!
   \*********************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -4964,13 +4954,13 @@ const PB_COLORS = [
 ];
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/puzzle-bobble/core/game.ts"
+/***/ "./src/puzzle-bobble/core/game.ts":
 /*!****************************************!*\
   !*** ./src/puzzle-bobble/core/game.ts ***!
   \****************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5513,13 +5503,13 @@ const updateGame = (store) => {
 const PuzzleBobbleGame = { startGame, stopGame };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/puzzle-bobble/core/store.ts"
+/***/ "./src/puzzle-bobble/core/store.ts":
 /*!*****************************************!*\
   !*** ./src/puzzle-bobble/core/store.ts ***!
   \*****************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5545,13 +5535,13 @@ const PuzzleBobbleStore = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/puzzle-bobble/index.ts"
+/***/ "./src/puzzle-bobble/index.ts":
 /*!************************************!*\
   !*** ./src/puzzle-bobble/index.ts ***!
   \************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5613,13 +5603,13 @@ class PuzzleBobbleRenderer {
 }
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/puzzle-bobble/renderers/svg.ts"
+/***/ "./src/puzzle-bobble/renderers/svg.ts":
 /*!********************************************!*\
   !*** ./src/puzzle-bobble/renderers/svg.ts ***!
   \********************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5893,13 +5883,91 @@ const generateAnimatedSVG = (store) => {
 const PuzzleBobblesVG = { generateAnimatedSVG };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/shared/constants.ts"
+/***/ "./src/shared/arcade-renderer.ts":
+/*!***************************************!*\
+  !*** ./src/shared/arcade-renderer.ts ***!
+  \***************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   ARCADE_GAMES: () => (/* binding */ ARCADE_GAMES),
+/* harmony export */   ArcadeRenderer: () => (/* binding */ ArcadeRenderer),
+/* harmony export */   GAME_REGISTRY: () => (/* binding */ GAME_REGISTRY),
+/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_3__.PlayerStyle)
+/* harmony export */ });
+/* harmony import */ var _bomberman_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../bomberman/index */ "./src/bomberman/index.ts");
+/* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../breakout/index */ "./src/breakout/index.ts");
+/* harmony import */ var _galaga_index__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../galaga/index */ "./src/galaga/index.ts");
+/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../pacman/index */ "./src/pacman/index.ts");
+/* harmony import */ var _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../puzzle-bobble/index */ "./src/puzzle-bobble/index.ts");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+const gameRegistry = {
+    pacman: {
+        label: '👻 Pac-Man',
+        factory: (conf) => new _pacman_index__WEBPACK_IMPORTED_MODULE_3__.PacmanRenderer(conf)
+    },
+    breakout: {
+        label: '🧱 Breakout',
+        factory: (conf) => new _breakout_index__WEBPACK_IMPORTED_MODULE_1__.BreakoutRenderer(conf)
+    },
+    galaga: {
+        label: '🚀 Galaga',
+        factory: (conf) => new _galaga_index__WEBPACK_IMPORTED_MODULE_2__.GalagaRenderer(conf)
+    },
+    'puzzle-bobble': {
+        label: '🫧 Puzzle Bobble',
+        factory: (conf) => new _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_4__.PuzzleBobbleRenderer(conf)
+    },
+    bomberman: {
+        label: '💣 Bomberman',
+        factory: (conf) => new _bomberman_index__WEBPACK_IMPORTED_MODULE_0__.BombermanRenderer(conf)
+    }
+};
+const GAME_REGISTRY = gameRegistry;
+const ARCADE_GAMES = Object.keys(GAME_REGISTRY);
+class ArcadeRenderer {
+    constructor(conf) {
+        const entry = GAME_REGISTRY[conf.game];
+        if (!entry) {
+            throw new Error(`Unknown game "${conf.game}". Valid games: ${ARCADE_GAMES.join(', ')}`);
+        }
+        this.renderer = entry.factory(conf);
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.renderer.start();
+        });
+    }
+    stop() {
+        this.renderer.stop();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/shared/constants.ts":
 /*!*********************************!*\
   !*** ./src/shared/constants.ts ***!
   \*********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -5953,13 +6021,13 @@ const GAME_THEMES = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/shared/providers/github-contributions.ts"
+/***/ "./src/shared/providers/github-contributions.ts":
 /*!******************************************************!*\
   !*** ./src/shared/providers/github-contributions.ts ***!
   \******************************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -6081,13 +6149,13 @@ const fetchGithubContributionsGraphQL = (store) => __awaiter(void 0, void 0, voi
 });
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/shared/providers/gitlab-contributions.ts"
+/***/ "./src/shared/providers/gitlab-contributions.ts":
 /*!******************************************************!*\
   !*** ./src/shared/providers/gitlab-contributions.ts ***!
   \******************************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -6127,13 +6195,13 @@ const fetchGitlabContributions = (store) => __awaiter(void 0, void 0, void 0, fu
 });
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/shared/providers/providers.ts"
+/***/ "./src/shared/providers/providers.ts":
 /*!*******************************************!*\
   !*** ./src/shared/providers/providers.ts ***!
   \*******************************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -6149,13 +6217,13 @@ const Providers = {
 };
 
 
-/***/ },
+/***/ }),
 
-/***/ "./src/shared/utils/utils.ts"
+/***/ "./src/shared/utils/utils.ts":
 /*!***********************************!*\
   !*** ./src/shared/utils/utils.ts ***!
   \***********************************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -6262,7 +6330,7 @@ const Utils = {
 };
 
 
-/***/ }
+/***/ })
 
 /******/ });
 /************************************************************************/
@@ -6284,12 +6352,6 @@ const Utils = {
 /******/ 	};
 /******/ 
 /******/ 	// Execute the module function
-/******/ 	if (!(moduleId in __webpack_modules__)) {
-/******/ 		delete __webpack_module_cache__[moduleId];
-/******/ 		var e = new Error("Cannot find module '" + moduleId + "'");
-/******/ 		e.code = 'MODULE_NOT_FOUND';
-/******/ 		throw e;
-/******/ 	}
 /******/ 	__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 /******/ 
 /******/ 	// Return the exports of the module
@@ -6334,18 +6396,23 @@ var __webpack_exports__ = {};
   \**********************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   BombermanRenderer: () => (/* reexport safe */ _bomberman_index__WEBPACK_IMPORTED_MODULE_4__.BombermanRenderer),
+/* harmony export */   ARCADE_GAMES: () => (/* reexport safe */ _shared_arcade_renderer__WEBPACK_IMPORTED_MODULE_5__.ARCADE_GAMES),
+/* harmony export */   ArcadeRenderer: () => (/* reexport safe */ _shared_arcade_renderer__WEBPACK_IMPORTED_MODULE_5__.ArcadeRenderer),
+/* harmony export */   BombermanRenderer: () => (/* reexport safe */ _bomberman_index__WEBPACK_IMPORTED_MODULE_0__.BombermanRenderer),
 /* harmony export */   BreakoutRenderer: () => (/* reexport safe */ _breakout_index__WEBPACK_IMPORTED_MODULE_1__.BreakoutRenderer),
+/* harmony export */   GAME_REGISTRY: () => (/* reexport safe */ _shared_arcade_renderer__WEBPACK_IMPORTED_MODULE_5__.GAME_REGISTRY),
 /* harmony export */   GalagaRenderer: () => (/* reexport safe */ _galaga_index__WEBPACK_IMPORTED_MODULE_2__.GalagaRenderer),
-/* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_0__.PacmanRenderer),
-/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_0__.PlayerStyle),
-/* harmony export */   PuzzleBobbleRenderer: () => (/* reexport safe */ _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_3__.PuzzleBobbleRenderer)
+/* harmony export */   PacmanRenderer: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_3__.PacmanRenderer),
+/* harmony export */   PlayerStyle: () => (/* reexport safe */ _pacman_index__WEBPACK_IMPORTED_MODULE_3__.PlayerStyle),
+/* harmony export */   PuzzleBobbleRenderer: () => (/* reexport safe */ _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_4__.PuzzleBobbleRenderer)
 /* harmony export */ });
-/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
+/* harmony import */ var _bomberman_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bomberman/index */ "./src/bomberman/index.ts");
 /* harmony import */ var _breakout_index__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./breakout/index */ "./src/breakout/index.ts");
 /* harmony import */ var _galaga_index__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./galaga/index */ "./src/galaga/index.ts");
-/* harmony import */ var _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./puzzle-bobble/index */ "./src/puzzle-bobble/index.ts");
-/* harmony import */ var _bomberman_index__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./bomberman/index */ "./src/bomberman/index.ts");
+/* harmony import */ var _pacman_index__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./pacman/index */ "./src/pacman/index.ts");
+/* harmony import */ var _puzzle_bobble_index__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./puzzle-bobble/index */ "./src/puzzle-bobble/index.ts");
+/* harmony import */ var _shared_arcade_renderer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./shared/arcade-renderer */ "./src/shared/arcade-renderer.ts");
+
 
 
 
@@ -6354,12 +6421,15 @@ __webpack_require__.r(__webpack_exports__);
 
 })();
 
-const __webpack_exports__BombermanRenderer = __webpack_exports__.BombermanRenderer;
-const __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
-const __webpack_exports__GalagaRenderer = __webpack_exports__.GalagaRenderer;
-const __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
-const __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
-const __webpack_exports__PuzzleBobbleRenderer = __webpack_exports__.PuzzleBobbleRenderer;
-export { __webpack_exports__BombermanRenderer as BombermanRenderer, __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle, __webpack_exports__PuzzleBobbleRenderer as PuzzleBobbleRenderer };
+var __webpack_exports__ARCADE_GAMES = __webpack_exports__.ARCADE_GAMES;
+var __webpack_exports__ArcadeRenderer = __webpack_exports__.ArcadeRenderer;
+var __webpack_exports__BombermanRenderer = __webpack_exports__.BombermanRenderer;
+var __webpack_exports__BreakoutRenderer = __webpack_exports__.BreakoutRenderer;
+var __webpack_exports__GAME_REGISTRY = __webpack_exports__.GAME_REGISTRY;
+var __webpack_exports__GalagaRenderer = __webpack_exports__.GalagaRenderer;
+var __webpack_exports__PacmanRenderer = __webpack_exports__.PacmanRenderer;
+var __webpack_exports__PlayerStyle = __webpack_exports__.PlayerStyle;
+var __webpack_exports__PuzzleBobbleRenderer = __webpack_exports__.PuzzleBobbleRenderer;
+export { __webpack_exports__ARCADE_GAMES as ARCADE_GAMES, __webpack_exports__ArcadeRenderer as ArcadeRenderer, __webpack_exports__BombermanRenderer as BombermanRenderer, __webpack_exports__BreakoutRenderer as BreakoutRenderer, __webpack_exports__GAME_REGISTRY as GAME_REGISTRY, __webpack_exports__GalagaRenderer as GalagaRenderer, __webpack_exports__PacmanRenderer as PacmanRenderer, __webpack_exports__PlayerStyle as PlayerStyle, __webpack_exports__PuzzleBobbleRenderer as PuzzleBobbleRenderer };
 
 //# sourceMappingURL=pacman-contribution-graph.js.map

@@ -4,6 +4,8 @@ import { PuzzleBobbleGame } from './core/game';
 import { PuzzleBobbleStore } from './core/store';
 import { PBConfig, PBStoreType } from './types';
 
+export { PBConfig as PuzzleBobbleConfig } from './types';
+
 export class PuzzleBobbleRenderer {
 	store!: PBStoreType;
 	conf: PBConfig;

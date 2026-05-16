@@ -4,13 +4,13 @@
 import fs from 'fs';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
-import { PacmanRenderer, BreakoutRenderer, GalagaRenderer, PuzzleBobbleRenderer, BombermanRenderer } from '../dist/pacman-contribution-graph.min.js';
+import { ARCADE_GAMES, ArcadeRenderer } from '../dist/pacman-contribution-graph.min.js';
 
 const argv = yargs(hideBin(process.argv))
 	.option('game', {
 		alias: 'g',
-		describe: 'Game to generate: pacman, breakout, galaga, puzzle-bobble, bomberman',
-		choices: ['pacman', 'breakout', 'galaga', 'puzzle-bobble', 'bomberman'],
+		describe: `Game to generate: ${ARCADE_GAMES.join(', ')}`,
+		choices: ARCADE_GAMES,
 		default: 'pacman',
 		type: 'string'
 	})
@@ -42,7 +42,8 @@ const argv = yargs(hideBin(process.argv))
 	})
 	.help().argv;
 
-const config = {
+const renderer = new ArcadeRenderer({
+	game: argv.game,
 	platform: argv.platform,
 	username: argv.username,
 	gameTheme: argv.gameTheme,
@@ -50,23 +51,5 @@ const config = {
 		fs.writeFileSync(argv.output, svg);
 		console.log(`SVG saved to ${argv.output}`);
 	}
-};
-
-let renderer;
-switch (argv.game) {
-	case 'breakout':
-		renderer = new BreakoutRenderer(config);
-		break;
-	case 'galaga':
-		renderer = new GalagaRenderer(config);
-		break;
-	case 'puzzle-bobble':
-		renderer = new PuzzleBobbleRenderer(config);
-		break;
-	case 'bomberman':
-		renderer = new BombermanRenderer(config);
-		break;
-	default:
-		renderer = new PacmanRenderer(config);
-}
+});
 renderer.start();
