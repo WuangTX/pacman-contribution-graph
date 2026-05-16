@@ -17,6 +17,7 @@ Transform your GitHub or GitLab contribution graph into arcade games! This JavaS
 | 🧱 **Breakout**      | A ball bounces around breaking your contribution bricks              |
 | 🚀 **Galaga**        | A fighter ship shoots lasers at your contribution grid               |
 | 🫧 **Puzzle Bobble** | A cannon fires colored bubbles to pop matching contribution clusters |
+| 💣 **Bomberman**     | Two bombers blast contribution cells across the graph                |
 
 More games coming soon!
 
@@ -52,12 +53,20 @@ More games coming soon!
   <img alt="puzzle bobble contribution graph" src="https://raw.githubusercontent.com/abozanona/abozanona/output/puzzle-bobble-contribution-graph.svg">
 </picture>
 
+### Bomberman preview
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/bomberman-contribution-graph-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/abozanona/abozanona/output/bomberman-contribution-graph.svg">
+  <img alt="bomberman contribution graph" src="https://raw.githubusercontent.com/abozanona/abozanona/output/bomberman-contribution-graph.svg">
+</picture>
+
 ## 🎮 Features
 
 Elevate your GitHub profile with the Pac-Man Contribution Graph Game and add a playful touch to your coding journey!
 
 - **Contribution Visualization**: Converts your GitHub or GitLab contribution data into a colorful grid.
-- **Multiple Games**: Classic Pac-Man and Breakout, with more planned
+- **Multiple Games**: Classic Pac-Man, Breakout, Galaga, Puzzle Bobble, and Bomberman, with more planned
 - **Multiple Themes**: Choose between different themes, such as GitHub Dark and GitLab Dark.
 - **Customizable Settings**: Adjust game settings.
 - **GitHub Integration**: Automatically fetches your contribution data via GraphQL API
@@ -179,6 +188,28 @@ Here's how to set up and run the games:
     renderer.start();
     ```
 
+    **Bomberman:**
+
+    ```javascript
+    import { BombermanRenderer } from 'pacman-contribution-graph';
+
+    const renderer = new BombermanRenderer({
+        username: 'your_username',
+        platform: 'github', // or 'gitlab'
+        gameTheme: 'github-dark', // 'github', 'github-dark', 'gitlab', or 'gitlab-dark'
+        svgCallback: (svg) => {
+            document.getElementById('output').innerHTML = svg;
+        },
+        gameOverCallback: () => {
+            console.log('Game over!');
+        },
+        pointsIncreasedCallback: (points) => {
+            console.log('Score:', points);
+        }
+    });
+    renderer.start();
+    ```
+
 3. **Customize Settings**: Adjust the parameters as needed:
     - `username`: Your GitHub or GitLab username.
     - `platform`: Specify `'github'` or `'gitlab'`.
@@ -228,9 +259,9 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
                       with:
                           github_user_name: ${{ github.repository_owner }}
                           # Comma-separated list of games to generate.
-                          # Valid values: pacman, breakout, galaga, puzzle-bobble
+                          # Valid values: pacman, breakout, galaga, puzzle-bobble, bomberman
                           # Default: pacman
-                          games: 'pacman,breakout,galaga,puzzle-bobble'
+                          games: 'pacman,breakout,galaga,puzzle-bobble,bomberman'
 
                     # Push the generated SVGs to the output branch
                     - name: push SVGs to the output branch
@@ -275,6 +306,13 @@ To showcase the Pac-Man game on your GitHub profile, follow these steps:
             <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph-dark.svg">
             <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph.svg">
             <img alt="puzzle bobble contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/puzzle-bobble-contribution-graph.svg">
+        </picture>
+
+        <!-- Bomberman -->
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
+            <img alt="bomberman contribution graph" src="https://raw.githubusercontent.com/[USERNAME]/[USERNAME]/output/bomberman-contribution-graph.svg">
         </picture>
         ```
 
@@ -329,6 +367,9 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
                 # Puzzle Bobble
                 - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game puzzle-bobble --gameTheme gitlab --output dist/puzzle-bobble-contribution-graph.svg
                 - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game puzzle-bobble --gameTheme gitlab-dark --output dist/puzzle-bobble-contribution-graph-dark.svg
+                # Bomberman
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game bomberman --gameTheme gitlab --output dist/bomberman-contribution-graph.svg
+                - pacman-contribution-graph --platform gitlab --username "$CI_PROJECT_NAMESPACE" --game bomberman --gameTheme gitlab-dark --output dist/bomberman-contribution-graph-dark.svg
             artifacts:
                 paths:
                     - dist/pacman-contribution-graph.svg
@@ -339,6 +380,8 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
                     - dist/galaga-contribution-graph-dark.svg
                     - dist/puzzle-bobble-contribution-graph.svg
                     - dist/puzzle-bobble-contribution-graph-dark.svg
+                    - dist/bomberman-contribution-graph.svg
+                    - dist/bomberman-contribution-graph-dark.svg
                 expire_in: 1 hour
             rules:
                 - if: '$CI_PIPELINE_SOURCE == "schedule"'
@@ -395,6 +438,13 @@ To showcase the Pac-Man game on your GitLab profile, follow these steps:
             <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph-dark.svg">
             <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph.svg">
             <img alt="puzzle bobble contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/puzzle-bobble-contribution-graph.svg">
+        </picture>
+
+        <!-- Bomberman -->
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
+            <img alt="bomberman contribution graph" src="https://gitlab.com/[USERNAME]/[USERNAME]/-/raw/main/output/bomberman-contribution-graph.svg">
         </picture>
         ```
 

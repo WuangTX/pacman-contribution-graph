@@ -1,5 +1,5 @@
 name: 'generate-pacman-game-from-github-contribution-grid'
-description: 'Generates arcade games (Pac-Man, Breakout) from a GitHub user contributions grid and outputs animated SVGs'
+description: 'Generates arcade games from a GitHub user contributions grid and outputs animated SVGs'
 author: 'abozanona'
 
 runs:
@@ -15,7 +15,7 @@ inputs:
         required: false
         default: ${{ github.token }}
     games:
-        description: 'Comma-separated list of games to generate. Valid values: pacman, breakout, galaga. Example: "pacman,breakout,galaga"'
+        description: 'Comma-separated list of games to generate. Valid values: pacman, breakout, galaga, puzzle-bobble, bomberman. Example: "pacman,breakout,galaga,puzzle-bobble,bomberman"'
         required: false
         default: 'pacman'
     player_style:
