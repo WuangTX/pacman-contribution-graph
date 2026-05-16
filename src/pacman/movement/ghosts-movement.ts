@@ -17,6 +17,12 @@ let currentMode = 'scatter';
 let modeTimer = 0;
 let dotsRemaining = 0;
 
+const resetGameMode = () => {
+	currentMode = 'scatter';
+	modeTimer = 0;
+	dotsRemaining = 0;
+};
+
 const moveGhosts = (store: StoreType) => {
 	// Calculate the total number of points remaining to define the behavior
 	dotsRemaining = countRemainingDots(store);
@@ -638,5 +644,6 @@ const getRandomDestination = (x: number, y: number) => {
 };
 
 export const GhostsMovement = {
-	moveGhosts
+	moveGhosts,
+	resetGameMode
 };

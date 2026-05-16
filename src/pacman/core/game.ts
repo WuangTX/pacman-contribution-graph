@@ -96,6 +96,7 @@ const startGame = async (store: StoreType) => {
 	store.aliveSteps = 0;
 	store.gameHistory = [];
 	store.ghosts.forEach((g) => (g.scared = false));
+	GhostsMovement.resetGameMode();
 
 	store.grid = Utils.createGridFromData(store);
 
