@@ -12,8 +12,8 @@ importers:
         specifier: 1.10.1
         version: 1.10.1
       pacman-contribution-graph:
-        specifier: 3.2.5
-        version: 3.2.5
+        specifier: 3.2.8
+        version: 3.2.8
     devDependencies:
       '@vercel/ncc':
         specifier: ^0.38.3
@@ -62,8 +62,8 @@ packages:
     resolution: {integrity: sha512-vpeMIQKxczTD/0s2CdEWHcb0eeJe6TFjxb+J5xgX7hScxqrGuyjmv4c1D4A/gelKfyox0gJJwIHF+fLjeaM8kQ==}
     engines: {node: '>=18'}
 
-  pacman-contribution-graph@3.2.5:
-    resolution: {integrity: sha512-RgveuXLZ1epr9ULYJ+bpakmgr5Pi/QMrNACmJiFoMb0oyu/ZWDc69hXPLkEhsap3TYsmJzOckWwijY4PkK++Jg==}
+  pacman-contribution-graph@3.2.8:
+    resolution: {integrity: sha512-j/hWAGOYwVzFwIRNre4D0lA1eCTWsiWTepmAf8NY1W8oXeIiUsvoQHHOZYakWZoFHgRclwQWuy7qxdTS6/tQsw==}
     hasBin: true
 
   string-width@7.2.0:
@@ -136,7 +136,7 @@ snapshots:
 
   get-east-asian-width@1.3.0: {}
 
-  pacman-contribution-graph@3.2.5:
+  pacman-contribution-graph@3.2.8:
     dependencies:
       yargs: 18.0.0
 
