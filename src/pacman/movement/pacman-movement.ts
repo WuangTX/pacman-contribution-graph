@@ -83,36 +83,26 @@ const findOptimalTarget = (store: StoreType) => {
 	return pointCells[0];
 };
 
-const calculateOptimalPath = (store: StoreType, target: Point2d) => {
-	const queue: { x: number; y: number; path: Point2d[]; score: number }[] = [
-		{ x: store.pacman.x, y: store.pacman.y, path: [], score: 0 }
-	];
-	const visited = new Set<string>([`${store.pacman.x},${store.pacman.y}`]);
-	const dangerMap = createDangerMap(store);
+const REVISIT_PENALTY = 100;
+const GHOST_ADJACENT_DANGER = 14;
+const GHOST_ADJACENT_PENALTY = 1_000_000;
 
-	const maxDangerValue = 15;
-
-	// Set weights according to player style - more extreme values
-	let safetyWeight = 0.5; // standard weight for safety
-	let pointWeight = 0.5; // standard weight for points
+const resolveSafetyWeight = (store: StoreType): number => {
+	let safetyWeight = 0.5;
 
 	switch (store.config.playerStyle) {
 		case PlayerStyle.CONSERVATIVE:
-			safetyWeight = 3.0; // Much higher values ​​to ensure conservative behavior
-			pointWeight = 0.1;
+			safetyWeight = 3.0;
 			break;
 		case PlayerStyle.AGGRESSIVE:
 			safetyWeight = 0.3;
-			pointWeight = 2.0;
 			break;
 		case PlayerStyle.OPPORTUNISTIC:
 		default:
 			safetyWeight = 0.8;
-			pointWeight = 0.8;
 			break;
 	}
 
-	// Calculate the distance to the nearest ghost
 	let closestGhostDistance = Infinity;
 	store.ghosts.forEach((ghost) => {
 		if (!ghost.scared) {
@@ -121,88 +111,84 @@ const calculateOptimalPath = (store: StoreType, target: Point2d) => {
 		}
 	});
 
-	// Narrower danger threshold for conservative
-	const dangerThreshold = store.config.playerStyle === PlayerStyle.CONSERVATIVE ? 5 : 7;
-	const dangerNearby = closestGhostDistance < dangerThreshold;
+	const proximityThreshold = store.config.playerStyle === PlayerStyle.CONSERVATIVE ? 5 : 7;
+	const dangerNearby = closestGhostDistance < proximityThreshold;
 
-	// Adjust weights further if there is danger and it is conservative
 	if (store.config.playerStyle === PlayerStyle.CONSERVATIVE && dangerNearby) {
-		safetyWeight *= 5; // Dramatically increase the safety weight in dangerous situations
+		safetyWeight *= 5;
 	}
 
-	while (queue.length > 0) {
-		queue.sort((a, b) => b.score - a.score);
-		const current = queue.shift()!;
-		const { x, y, path } = current;
+	return safetyWeight;
+};
 
-		if (x === target.x && y === target.y) {
-			// Upon arrival at the destination, analyze the behavior
-			if (path.length > 0) {
-				let totalSafetyScore = 0;
-				let totalPointScore = 0;
+const stepCost = (store: StoreType, dangerMap: Map<string, number>, safetyWeight: number, x: number, y: number): number => {
+	const key = `${x},${y}`;
+	const danger = dangerMap.get(key) ?? 0;
+	const revisit = store.pacman.recentPositions?.includes(key) ? REVISIT_PENALTY : 0;
+	const ghostAdjacentPenalty = danger >= GHOST_ADJACENT_DANGER ? GHOST_ADJACENT_PENALTY : 0;
 
-				path.forEach((point) => {
-					const key = `${point.x},${point.y}`;
-					const danger = dangerMap.get(key) || 0;
-					const points = store.grid[point.x][point.y].commitsCount;
+	return 1 + danger * safetyWeight + revisit + ghostAdjacentPenalty;
+};
 
-					totalSafetyScore -= danger * safetyWeight;
-					totalPointScore += points * pointWeight;
-				});
+const heuristic = (from: Point2d, target: Point2d): number => {
+	return Math.abs(from.x - target.x) + Math.abs(from.y - target.y);
+};
 
-				return path[0];
-			}
-			return null;
+const reconstructFirstStep = (cameFrom: Map<string, string>, targetKey: string, startKey: string): Point2d | null => {
+	let cursor = targetKey;
+	let parent = cameFrom.get(cursor);
+	while (parent !== undefined && parent !== startKey) {
+		cursor = parent;
+		parent = cameFrom.get(cursor);
+	}
+	if (parent === undefined) return null;
+	const [x, y] = cursor.split(',').map(Number);
+	return { x, y };
+};
+
+const calculateOptimalPath = (store: StoreType, target: Point2d): Point2d | null => {
+	const start: Point2d = { x: store.pacman.x, y: store.pacman.y };
+	if (start.x === target.x && start.y === target.y) return null;
+
+	const dangerMap = createDangerMap(store);
+	const safetyWeight = resolveSafetyWeight(store);
+
+	const startKey = `${start.x},${start.y}`;
+	const targetKey = `${target.x},${target.y}`;
+
+	const open: { x: number; y: number; g: number; f: number }[] = [{ x: start.x, y: start.y, g: 0, f: heuristic(start, target) }];
+	const gScore = new Map<string, number>([[startKey, 0]]);
+	const cameFrom = new Map<string, string>();
+
+	while (open.length > 0) {
+		let bestIdx = 0;
+		for (let i = 1; i < open.length; i++) {
+			if (open[i].f < open[bestIdx].f) bestIdx = i;
+		}
+		const current = open.splice(bestIdx, 1)[0];
+		const currentKey = `${current.x},${current.y}`;
+
+		if (current.g > (gScore.get(currentKey) ?? Infinity)) continue;
+
+		if (currentKey === targetKey) {
+			return reconstructFirstStep(cameFrom, targetKey, startKey);
 		}
 
-		for (const [dx, dy] of MovementUtils.getValidMoves(x, y)) {
-			const newX = x + dx;
-			const newY = y + dy;
-			const key = `${newX},${newY}`;
+		for (const [dx, dy] of MovementUtils.getValidMoves(current.x, current.y)) {
+			const nx = current.x + dx;
+			const ny = current.y + dy;
+			const neighborKey = `${nx},${ny}`;
+			const tentativeG = current.g + stepCost(store, dangerMap, safetyWeight, nx, ny);
 
-			if (!visited.has(key)) {
-				const newPath = [...path, { x: newX, y: newY }];
-				const danger = dangerMap.get(key) || 0;
-				const pointValue = store.grid[newX][newY].commitsCount;
-				const distanceToTarget = MovementUtils.calculateDistance(newX, newY, target.x, target.y);
-				const revisitPenalty = store.pacman.recentPositions?.includes(key) ? 100 : 0;
-
-				let safetyScore, pointScore, finalScore;
-
-				// Completely inverted punctuation logic for conservative style
-				if (store.config.playerStyle === PlayerStyle.CONSERVATIVE) {
-					// For conservative: danger is MUCH more important than points
-					safetyScore = (maxDangerValue - danger) * safetyWeight;
-
-					// Severe penalties for dangerous cells
-					if (danger >= 5) {
-						safetyScore -= 100; // Severe penalty for dangerous cells
-					} else {
-						// Bonus for safe cells
-						safetyScore += 50;
-					}
-
-					pointScore = pointValue * pointWeight;
-					const distanceScore = -distanceToTarget / 10;
-
-					// Score components are different for conservative
-					finalScore = safetyScore * 5 + pointScore + distanceScore - revisitPenalty;
-				} else {
-					// Default logic for other styles
-					safetyScore = (maxDangerValue - danger) * safetyWeight;
-					pointScore = pointValue * pointWeight;
-					const distanceScore = -distanceToTarget / 10;
-
-					finalScore = safetyScore + pointScore + distanceScore - revisitPenalty;
-				}
-				queue.push({
-					x: newX,
-					y: newY,
-					path: newPath,
-					score: finalScore
+			if (tentativeG < (gScore.get(neighborKey) ?? Infinity)) {
+				gScore.set(neighborKey, tentativeG);
+				cameFrom.set(neighborKey, currentKey);
+				open.push({
+					x: nx,
+					y: ny,
+					g: tentativeG,
+					f: tentativeG + heuristic({ x: nx, y: ny }, target)
 				});
-
-				visited.add(key);
 			}
 		}
 	}
